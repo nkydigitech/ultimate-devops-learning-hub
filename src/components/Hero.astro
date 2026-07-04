@@ -1,0 +1,190 @@
+<section class="hero">
+
+  <div class="hero-content">
+
+    <span class="badge">
+      🚀 Beginner → Production Engineer
+    </span>
+
+    <h1>
+
+      Master DevOps
+      <br />
+      Through Real Projects
+
+    </h1>
+
+    <p>
+
+      Learn Linux, Git, Python, Docker, Kubernetes,
+      Terraform, AWS, Azure, DevSecOps, Agentic AI,
+      and real production deployments with hands-on labs,
+      troubleshooting guides, and interview preparation.
+
+    </p>
+
+    <div class="buttons">
+
+      <a href="#" class="primary">
+        Start Learning
+      </a>
+
+      <a href="#" class="secondary">
+        View Roadmap
+      </a>
+
+    </div>
+
+  </div>
+
+  <div class="hero-image">
+
+    <div class="circle"></div>
+
+    <div class="icon docker">🐳</div>
+
+    <div class="icon kubernetes">☸️</div>
+
+    <div class="icon aws">☁️</div>
+
+    <div class="icon linux">🐧</div>
+
+    <div class="icon terraform">🏗️</div>
+
+  </div>
+
+</section>
+
+<style>
+
+.hero{
+
+display:grid;
+grid-template-columns:1fr 1fr;
+align-items:center;
+padding:90px 60px;
+min-height:80vh;
+gap:60px;
+
+}
+
+.badge{
+
+display:inline-block;
+background:#1e293b;
+color:#f97316;
+padding:10px 18px;
+border-radius:999px;
+font-weight:bold;
+margin-bottom:20px;
+
+}
+
+.hero h1{
+
+font-size:4rem;
+line-height:1.1;
+margin-bottom:25px;
+
+}
+
+.hero p{
+
+font-size:1.2rem;
+color:#cbd5e1;
+line-height:1.8;
+margin-bottom:35px;
+
+}
+
+.buttons{
+
+display:flex;
+gap:20px;
+
+}
+
+.primary{
+
+background:#f97316;
+padding:16px 30px;
+border-radius:8px;
+color:white;
+font-weight:bold;
+
+}
+
+.secondary{
+
+border:2px solid #f97316;
+padding:16px 30px;
+border-radius:8px;
+color:#f97316;
+font-weight:bold;
+
+}
+
+.hero-image{
+
+display:flex;
+justify-content:center;
+align-items:center;
+position:relative;
+height:450px;
+
+}
+
+.circle{
+
+width:320px;
+height:320px;
+background:radial-gradient(circle,#f97316,#111827);
+border-radius:50%;
+filter:blur(10px);
+
+}
+
+.icon{
+
+position:absolute;
+font-size:3rem;
+
+}
+
+.docker{top:10%;left:15%;}
+.kubernetes{top:20%;right:10%;}
+.aws{bottom:15%;left:20%;}
+.linux{bottom:5%;right:25%;}
+.terraform{top:45%;left:45%;}
+
+@media(max-width:900px){
+
+.hero{
+
+grid-template-columns:1fr;
+text-align:center;
+
+}
+
+.buttons{
+
+justify-content:center;
+flex-wrap:wrap;
+
+}
+
+.hero h1{
+
+font-size:2.8rem;
+
+}
+
+.hero-image{
+
+height:300px;
+
+}
+
+}
+
+</style>

@@ -1,0 +1,65 @@
+<nav>
+  <div class="logo">
+    🚀 Ultimate DevOps Learning Hub
+  </div>
+
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li><a href="#">Roadmap</a></li>
+    <li><a href="#">Projects</a></li>
+    <li><a href="#">Labs</a></li>
+    <li><a href="#">Interview Prep</a></li>
+    <li><a href="#">Contact</a></li>
+  </ul>
+</nav>
+
+<style>
+nav{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px 40px;
+    background:#111827;
+    border-bottom:2px solid #f97316;
+    position:sticky;
+    top:0;
+    z-index:100;
+}
+
+.logo{
+    color:#f97316;
+    font-size:1.3rem;
+    font-weight:bold;
+}
+
+ul{
+    display:flex;
+    gap:30px;
+    list-style:none;
+}
+
+a{
+    color:white;
+    text-decoration:none;
+    transition:.3s;
+}
+
+a:hover{
+    color:#f97316;
+}
+
+@media(max-width:900px){
+
+nav{
+    flex-direction:column;
+    gap:20px;
+}
+
+ul{
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:15px;
+}
+
+}
+</style>
