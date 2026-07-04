@@ -1,0 +1,146 @@
+---
+const technologies = [
+  { name: "Linux", icon: "🐧", level: "Beginner", desc: "Master the Linux command line used in production servers." },
+  { name: "Git & GitHub", icon: "🌿", level: "Beginner", desc: "Version control, collaboration and GitHub workflows." },
+  { name: "Python", icon: "🐍", level: "Beginner", desc: "Automate DevOps tasks using Python." },
+  { name: "Networking", icon: "🌐", level: "Beginner", desc: "Understand TCP/IP, DNS, HTTP and load balancing." },
+  { name: "Docker", icon: "🐳", level: "Intermediate", desc: "Build and manage containers like modern companies." },
+  { name: "Kubernetes", icon: "☸️", level: "Intermediate", desc: "Deploy and scale applications in production." },
+  { name: "Terraform", icon: "🏗️", level: "Intermediate", desc: "Provision infrastructure as code." },
+  { name: "Ansible", icon: "⚙️", level: "Intermediate", desc: "Automate server configuration." },
+  { name: "Jenkins", icon: "🚀", level: "Intermediate", desc: "Build complete CI/CD pipelines." },
+  { name: "AWS", icon: "☁️", level: "Cloud", desc: "Deploy scalable cloud infrastructure." },
+  { name: "Azure", icon: "🔷", level: "Cloud", desc: "Build enterprise cloud solutions." },
+  { name: "Prometheus & Grafana", icon: "📊", level: "Monitoring", desc: "Monitor applications and infrastructure." },
+  { name: "Argo CD", icon: "🔄", level: "GitOps", desc: "Continuous deployment using GitOps." },
+  { name: "DevSecOps", icon: "🔒", level: "Security", desc: "Integrate security throughout the DevOps lifecycle." },
+  { name: "Zipkin", icon: "📍", level: "Tracing", desc: "Understand distributed tracing." },
+  { name: "Claude AI", icon: "🤖", level: "AI", desc: "Build AI-powered DevOps workflows." },
+  { name: "MCP", icon: "🧠", level: "AI", desc: "Learn the Model Context Protocol." },
+  { name: "Production Projects", icon: "💼", level: "Advanced", desc: "Build complete real-world DevOps systems." }
+];
+---
+
+  <section id="roadmap" class="tech-section">
+
+  <h2>Complete DevOps Technology Roadmap</h2>
+
+  <p>
+    Learn every technology required to become a production-ready DevOps Engineer.
+  </p>
+
+  <div class="grid">
+
+    {
+      technologies.map((tech) => (
+
+        <div class="card">
+
+          <div class="icon">{tech.icon}</div>
+
+          <h3>{tech.name}</h3>
+
+          <span>{tech.level}</span>
+
+          <p>{tech.desc}</p>
+
+        </div>
+
+      ))
+    }
+
+  </div>
+
+</section>
+
+<style>
+
+.tech-section{
+padding:90px 8%;
+background:#07101f;
+text-align:center;
+}
+
+.tech-section h2{
+font-size:2.8rem;
+margin-bottom:15px;
+}
+
+.tech-section>p{
+max-width:800px;
+margin:auto;
+color:#cbd5e1;
+margin-bottom:60px;
+}
+
+.grid{
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+
+gap:25px;
+
+}
+
+.card{
+
+background:#132238;
+
+padding:30px;
+
+border-radius:18px;
+
+transition:.35s;
+
+border:1px solid #223754;
+
+}
+
+.card:hover{
+
+transform:translateY(-10px);
+
+border-color:#f97316;
+
+box-shadow:0 0 25px rgba(249,115,22,.35);
+
+}
+
+.icon{
+
+font-size:3rem;
+
+margin-bottom:20px;
+
+}
+
+.card h3{
+
+margin-bottom:10px;
+
+}
+
+.card span{
+
+display:inline-block;
+
+background:#f97316;
+
+padding:5px 12px;
+
+border-radius:20px;
+
+font-size:.8rem;
+
+margin-bottom:20px;
+
+}
+
+.card p{
+
+color:#cbd5e1;
+
+}
+
+</style>

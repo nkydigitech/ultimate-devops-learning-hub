@@ -1,0 +1,142 @@
+---
+const phases = [
+  {
+    title: "Phase 1 — Foundations",
+    duration: "4–6 Weeks",
+    color: "#22c55e",
+    technologies: ["Linux", "Git", "Networking", "Python"],
+    project: "Build your Linux & Git command-line toolkit"
+  },
+  {
+    title: "Phase 2 — Containers & Automation",
+    duration: "5–7 Weeks",
+    color: "#f97316",
+    technologies: ["Docker", "Kubernetes", "Terraform", "Ansible", "Jenkins"],
+    project: "Deploy a containerized application with CI/CD"
+  },
+  {
+    title: "Phase 3 — Cloud & Observability",
+    duration: "6–8 Weeks",
+    color: "#3b82f6",
+    technologies: ["AWS", "Azure", "Prometheus", "Grafana", "Argo CD", "Zipkin"],
+    project: "Deploy and monitor a production-ready cloud application"
+  },
+  {
+    title: "Phase 4 — Production Engineer",
+    duration: "Ongoing",
+    color: "#a855f7",
+    technologies: ["DevSecOps", "Agentic AI", "Claude", "MCP", "Interview Prep"],
+    project: "Build a complete production DevOps platform"
+  }
+];
+---
+
+<section id="journey" class="journey">
+  <h2>Your DevOps Learning Journey</h2>
+  <p class="intro">
+    Follow a structured roadmap from beginner fundamentals to advanced production engineering.
+  </p>
+
+  <div class="timeline">
+    {phases.map((phase) => (
+      <div class="phase">
+        <div
+          class="badge"
+          style={`background:${phase.color};`}
+        ></div>
+
+        <div class="content">
+          <h3>{phase.title}</h3>
+          <small>{phase.duration}</small>
+
+          <ul>
+            {phase.technologies.map((tech) => (
+              <li>{tech}</li>
+            ))}
+          </ul>
+
+          <p class="project">
+            <strong>Capstone:</strong> {phase.project}
+          </p>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+.journey{
+padding:90px 8%;
+background:#0f172a;
+}
+
+.journey h2{
+text-align:center;
+font-size:2.8rem;
+margin-bottom:15px;
+}
+
+.intro{
+text-align:center;
+max-width:760px;
+margin:auto;
+margin-bottom:70px;
+color:#cbd5e1;
+}
+
+.timeline{
+display:flex;
+flex-direction:column;
+gap:35px;
+max-width:950px;
+margin:auto;
+}
+
+.phase{
+display:flex;
+gap:25px;
+align-items:flex-start;
+}
+
+.badge{
+width:18px;
+height:18px;
+border-radius:50%;
+margin-top:10px;
+flex-shrink:0;
+box-shadow:0 0 15px rgba(255,255,255,.25);
+}
+
+.content{
+background:#132238;
+padding:25px;
+border-radius:18px;
+flex:1;
+border:1px solid #223754;
+transition:.3s;
+}
+
+.content:hover{
+transform:translateY(-6px);
+border-color:#f97316;
+box-shadow:0 0 20px rgba(249,115,22,.25);
+}
+
+.content h3{
+margin-bottom:6px;
+}
+
+.content small{
+color:#94a3b8;
+}
+
+.content ul{
+margin:18px 0;
+padding-left:20px;
+line-height:1.8;
+}
+
+.project{
+color:#cbd5e1;
+}
+</style>

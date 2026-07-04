@@ -1,0 +1,139 @@
+<section id="terminal" class="terminal-section">
+
+  <div class="heading">
+    <h2>Hands-on Learning Starts Here</h2>
+
+    <p>
+      Practice real Linux, Docker, Kubernetes, Terraform and AWS commands
+      exactly as you would in a production environment.
+    </p>
+  </div>
+
+  <div class="terminal">
+
+    <div class="terminal-top">
+      <span class="red"></span>
+      <span class="yellow"></span>
+      <span class="green"></span>
+
+      <div class="title">
+        terminal@ultimate-devops
+      </div>
+    </div>
+
+    <div class="screen">
+
+<pre><code>$ ssh ec2-user@production-server
+
+Connected to production server.
+
+$ docker ps
+
+CONTAINER ID   IMAGE           STATUS
+
+91ab2cd4       nginx           Up 12 hours
+45df8e91       backend-api     Up 12 hours
+77bc4a12       redis           Up 12 hours
+
+$ kubectl get pods
+
+frontend        Running
+backend         Running
+monitoring      Running
+grafana         Running
+
+$ terraform apply
+
+Apply complete!
+Resources: 8 added, 0 changed, 0 destroyed.
+
+✔ Production environment healthy
+</code></pre>
+
+    </div>
+
+  </div>
+
+</section>
+
+<style>
+
+.terminal-section{
+padding:100px 8%;
+background:#07101f;
+}
+
+.heading{
+text-align:center;
+margin-bottom:50px;
+}
+
+.heading h2{
+font-size:2.8rem;
+margin-bottom:15px;
+}
+
+.heading p{
+max-width:760px;
+margin:auto;
+color:#cbd5e1;
+}
+
+.terminal{
+max-width:950px;
+margin:auto;
+border-radius:16px;
+overflow:hidden;
+box-shadow:0 20px 60px rgba(0,0,0,.45);
+border:1px solid #24364f;
+}
+
+.terminal-top{
+background:#1f2937;
+display:flex;
+align-items:center;
+padding:14px 18px;
+gap:10px;
+}
+
+.red,
+.yellow,
+.green{
+width:13px;
+height:13px;
+border-radius:50%;
+display:block;
+}
+
+.red{background:#ff5f56;}
+.yellow{background:#ffbd2e;}
+.green{background:#27c93f;}
+
+.title{
+margin-left:20px;
+color:#cbd5e1;
+font-size:.9rem;
+}
+
+.screen{
+background:#0b1220;
+padding:28px;
+overflow:auto;
+}
+
+pre{
+margin:0;
+font-family:"JetBrains Mono", Consolas, monospace;
+font-size:1rem;
+line-height:1.8;
+color:#7CFC98;
+white-space:pre-wrap;
+}
+
+.terminal:hover{
+transform:translateY(-6px);
+transition:.3s;
+box-shadow:0 25px 70px rgba(249,115,22,.18);
+}
+
+</style>
