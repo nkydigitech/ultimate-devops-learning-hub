@@ -1,3 +1,15 @@
+---
+import docker from "../assets/icons/docker.svg";
+import kubernetes from "../assets/icons/kubernetes.svg";
+import linux from "../assets/icons/linux.svg";
+import git from "../assets/icons/git.svg";
+import terraform from "../assets/icons/terraform.svg";
+import aws from "../assets/icons/aws.svg";
+import azure from "../assets/icons/azure.svg";
+import python from "../assets/icons/python.svg";
+---
+
+
 <section class="hero">
 
   <div class="hero-content">
@@ -56,21 +68,18 @@
 
   </div>
 
-  <div class="hero-image">
+<div class="hero-image">
+  <div class="circle"></div>
 
-    <div class="circle"></div>
-
-    <div class="icon docker">🐳</div>
-
-    <div class="icon kubernetes">☸️</div>
-
-    <div class="icon aws">☁️</div>
-
-    <div class="icon linux">🐧</div>
-
-    <div class="icon terraform">🏗️</div>
-
-  </div>
+  <img src={docker.src} class="icon docker" alt="Docker" />
+  <img src={kubernetes.src} class="icon kubernetes" alt="Kubernetes" />
+  <img src={linux.src} class="icon linux" alt="Linux" />
+  <img src={git.src} class="icon git" alt="Git" />
+  <img src={terraform.src} class="icon terraform" alt="Terraform" />
+  <img src={aws.src} class="icon aws" alt="AWS" />
+  <img src={azure.src} class="icon azure" alt="Azure" />
+  <img src={python.src} class="icon python" alt="Python" />
+</div>
 
 </section>
 
@@ -254,43 +263,11 @@ filter:blur(8px);
 .icon{
 
 position:absolute;
-font-size:3rem;
-animation:float 4s ease-in-out infinite;
-
-}
-
-.docker{
-
-top:10%;
-left:15%;
-
-}
-
-.kubernetes{
-
-top:20%;
-right:10%;
-
-}
-
-.aws{
-
-bottom:15%;
-left:20%;
-
-}
-
-.linux{
-
-bottom:5%;
-right:25%;
-
-}
-
-.terraform{
-
-top:45%;
-left:45%;
+width:64px;
+height:64px;
+object-fit:contain;
+animation:float 6s ease-in-out infinite;
+filter:drop-shadow(0 8px 20px rgba(0,0,0,.35));
 
 }
 
@@ -304,6 +281,46 @@ transform:translateY(0);
 transform:translateY(-12px);
 }
 
+}
+
+.docker{
+top:8%;
+left:15%;
+}
+
+.kubernetes{
+top:12%;
+right:12%;
+}
+
+.linux{
+bottom:12%;
+left:18%;
+}
+
+.git{
+top:50%;
+left:5%;
+}
+
+.terraform{
+top:48%;
+right:18%;
+}
+
+.aws{
+bottom:22%;
+right:5%;
+}
+
+.azure{
+top:65%;
+left:42%;
+}
+
+.python{
+top:30%;
+left:45%;
 }
 
 @media(max-width:900px){
