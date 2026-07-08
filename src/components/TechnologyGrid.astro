@@ -1,27 +1,143 @@
 ---
+import linux from "../assets/icons/linux.svg";
+import git from "../assets/icons/git.svg";
+import python from "../assets/icons/python.svg";
+import docker from "../assets/icons/docker.svg";
+import kubernetes from "../assets/icons/kubernetes.svg";
+import terraform from "../assets/icons/terraform.svg";
+import ansible from "../assets/icons/ansible.svg";
+import jenkins from "../assets/icons/jenkins.svg";
+import aws from "../assets/icons/aws.svg";
+import azure from "../assets/icons/azure.svg";
+import prometheus from "../assets/icons/prometheus.svg";
+import argo from "../assets/icons/argo.svg";
+import githubActions from "../assets/icons/github-actions.svg";
+import network from "../assets/icons/network.svg";
+import devsecops from "../assets/icons/devsecops.svg";
+import mcp from "../assets/icons/mcp.svg";
+import production from "../assets/icons/production.svg";
+import claude from "../assets/icons/claude.svg";
+import zipkin from "../assets/icons/zipkin.svg";
+
 const technologies = [
-  { name: "Linux", icon: "🐧", level: "Beginner", desc: "Master the Linux command line used in production servers." },
-  { name: "Git & GitHub", icon: "🌿", level: "Beginner", desc: "Version control, collaboration and GitHub workflows." },
-  { name: "Python", icon: "🐍", level: "Beginner", desc: "Automate DevOps tasks using Python." },
-  { name: "Networking", icon: "🌐", level: "Beginner", desc: "Understand TCP/IP, DNS, HTTP and load balancing." },
-  { name: "Docker", icon: "🐳", level: "Intermediate", desc: "Build and manage containers like modern companies." },
-  { name: "Kubernetes", icon: "☸️", level: "Intermediate", desc: "Deploy and scale applications in production." },
-  { name: "Terraform", icon: "🏗️", level: "Intermediate", desc: "Provision infrastructure as code." },
-  { name: "Ansible", icon: "⚙️", level: "Intermediate", desc: "Automate server configuration." },
-  { name: "Jenkins", icon: "🚀", level: "Intermediate", desc: "Build complete CI/CD pipelines." },
-  { name: "AWS", icon: "☁️", level: "Cloud", desc: "Deploy scalable cloud infrastructure." },
-  { name: "Azure", icon: "🔷", level: "Cloud", desc: "Build enterprise cloud solutions." },
-  { name: "Prometheus & Grafana", icon: "📊", level: "Monitoring", desc: "Monitor applications and infrastructure." },
-  { name: "Argo CD", icon: "🔄", level: "GitOps", desc: "Continuous deployment using GitOps." },
-  { name: "DevSecOps", icon: "🔒", level: "Security", desc: "Integrate security throughout the DevOps lifecycle." },
-  { name: "Zipkin", icon: "📍", level: "Tracing", desc: "Understand distributed tracing." },
-  { name: "Claude AI", icon: "🤖", level: "AI", desc: "Build AI-powered DevOps workflows." },
-  { name: "MCP", icon: "🧠", level: "AI", desc: "Learn the Model Context Protocol." },
-  { name: "Production Projects", icon: "💼", level: "Advanced", desc: "Build complete real-world DevOps systems." }
+  {
+    name: "Linux",
+    icon: linux.src,
+    level: "Beginner",
+    desc: "Master the Linux command line used in production servers."
+  },
+  {
+    name: "Git & GitHub",
+    icon: git.src,
+    level: "Beginner",
+    desc: "Version control, collaboration and GitHub workflows."
+  },
+  {
+    name: "Python",
+    icon: python.src,
+    level: "Beginner",
+    desc: "Automate DevOps tasks using Python."
+  },
+  {
+    name: "Networking",
+    icon: network.src,
+    level: "Beginner",
+    desc: "Understand TCP/IP, DNS, HTTP and load balancing."
+  },
+  {
+    name: "Docker",
+    icon: docker.src,
+    level: "Intermediate",
+    desc: "Build and manage containers like modern companies."
+  },
+  {
+    name: "Kubernetes",
+    icon: kubernetes.src,
+    level: "Intermediate",
+    desc: "Deploy and scale applications in production."
+  },
+  {
+    name: "Terraform",
+    icon: terraform.src,
+    level: "Intermediate",
+    desc: "Provision infrastructure as code."
+  },
+  {
+    name: "Ansible",
+    icon: ansible.src,
+    level: "Intermediate",
+    desc: "Automate server configuration."
+  },
+  {
+    name: "Jenkins",
+    icon: jenkins.src,
+    level: "Intermediate",
+    desc: "Build complete CI/CD pipelines."
+  },
+  {
+    name: "GitHub Actions",
+    icon: githubActions.src,
+    level: "Intermediate",
+    desc: "Automate workflows directly inside GitHub."
+  },
+  {
+    name: "AWS",
+    icon: aws.src,
+    level: "Cloud",
+    desc: "Deploy scalable cloud infrastructure."
+  },
+  {
+    name: "Azure",
+    icon: azure.src,
+    level: "Cloud",
+    desc: "Build enterprise cloud solutions."
+  },
+  {
+    name: "Prometheus & Grafana",
+    icon: prometheus.src,
+    level: "Monitoring",
+    desc: "Monitor applications and infrastructure."
+  },
+  {
+    name: "Argo CD",
+    icon: argo.src,
+    level: "GitOps",
+    desc: "Continuous deployment using GitOps."
+  },
+  {
+    name: "DevSecOps",
+    icon: devsecops.src,
+    level: "Security",
+    desc: "Integrate security throughout the DevOps lifecycle."
+  },
+  {
+    name: "Zipkin",
+    icon: zipkin.src,
+    level: "Tracing",
+    desc: "Understand distributed tracing."
+  },
+  {
+    name: "Claude AI",
+    icon: claude.src,
+    level: "AI",
+    desc: "Build AI-powered DevOps workflows."
+  },
+  {
+    name: "MCP",
+    icon: mcp.src,
+    level: "AI",
+    desc: "Learn the Model Context Protocol."
+  },
+  {
+    name: "Production Projects",
+    icon: production.src,
+    level: "Advanced",
+    desc: "Build complete real-world DevOps systems."
+  }
 ];
 ---
 
-  <section id="roadmap" class="tech-section">
+<section id="roadmap" class="tech-section">
 
   <h2>Complete DevOps Technology Roadmap</h2>
 
@@ -36,7 +152,10 @@ const technologies = [
 
         <div class="card">
 
-          <div class="icon">{tech.icon}</div>
+          <div class="icon">
+            <img src={tech.icon} alt={tech.name} />
+        
+        </div>
 
           <h3>{tech.name}</h3>
 
@@ -56,90 +175,93 @@ const technologies = [
 <style>
 
 .tech-section{
-padding:90px 8%;
-background:#07101f;
-text-align:center;
+  padding:90px 8%;
+  background:#07101f;
+  text-align:center;
 }
 
 .tech-section h2{
-font-size:2.8rem;
-margin-bottom:15px;
+  font-size:2.8rem;
+  margin-bottom:15px;
 }
 
-.tech-section>p{
-max-width:800px;
-margin:auto;
-color:#cbd5e1;
-margin-bottom:60px;
+.tech-section > p{
+  max-width:800px;
+  margin:auto;
+  color:#cbd5e1;
+  margin-bottom:60px;
 }
 
 .grid{
-
-display:grid;
-
-grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-
-gap:25px;
-
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:25px;
 }
 
 .card{
-
-background:#132238;
-
-padding:30px;
-
-border-radius:18px;
-
-transition:.35s;
-
-border:1px solid #223754;
-
+  background:#132238;
+  padding:30px;
+  border-radius:18px;
+  transition:.35s;
+  border:1px solid #223754;
 }
 
 .card:hover{
-
-transform:translateY(-10px);
-
-border-color:#f97316;
-
-box-shadow:0 0 25px rgba(249,115,22,.35);
-
+  transform:translateY(-10px);
+  border-color:#f97316;
+  box-shadow:0 0 25px rgba(249,115,22,.35);
+}
+.card:hover .icon img{
+  transform:scale(1.12) rotate(4deg);
+  transition:.3s ease;
 }
 
+.icon img{
+  transition:.3s ease;
+}
 .icon{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:72px;
+  margin-bottom:20px;
+  font-size:3rem;
+}
 
-font-size:3rem;
-
-margin-bottom:20px;
-
+.icon img{
+  width:60px;
+  height:60px;
+  object-fit:contain;
 }
 
 .card h3{
-
-margin-bottom:10px;
-
+  margin-bottom:10px;
 }
 
 .card span{
-
-display:inline-block;
-
-background:#f97316;
-
-padding:5px 12px;
-
-border-radius:20px;
-
-font-size:.8rem;
-
-margin-bottom:20px;
-
+  display:inline-block;
+  background:#f97316;
+  color:#fff;
+  padding:5px 12px;
+  border-radius:20px;
+  font-size:.8rem;
+  margin-bottom:20px;
 }
 
 .card p{
+  color:#cbd5e1;
+  line-height:1.6;
+}
 
-color:#cbd5e1;
+@media(max-width:768px){
+
+  .tech-section{
+    padding:70px 6%;
+  }
+
+  .tech-section h2{
+    font-size:2rem;
+  }
 
 }
 
