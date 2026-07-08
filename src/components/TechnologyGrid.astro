@@ -24,8 +24,10 @@ const technologies = [
     name: "Linux",
     icon: linux.src,
     level: "Beginner",
-    desc: "Master the Linux command line used in production servers."
+    desc: "Master the Linux command line used in production servers.",
+    href: "/ultimate-devops-learning-hub/linux/introduction"
   },
+
   {
     name: "Git & GitHub",
     icon: git.src,
@@ -150,12 +152,11 @@ const technologies = [
     {
       technologies.map((tech) => (
 
-        <div class="card">
+        <a href={tech.href ?? "#"} class="card">
 
           <div class="icon">
             <img src={tech.icon} alt={tech.name} />
-        
-        </div>
+          </div>
 
           <h3>{tech.name}</h3>
 
@@ -163,7 +164,7 @@ const technologies = [
 
           <p>{tech.desc}</p>
 
-        </div>
+        </a>
 
       ))
     }
@@ -199,11 +200,14 @@ const technologies = [
 }
 
 .card{
+  display:block;
   background:#132238;
   padding:30px;
   border-radius:18px;
-  transition:.35s;
   border:1px solid #223754;
+  text-decoration:none;
+  color:inherit;
+  transition:.35s;
 }
 
 .card:hover{
@@ -211,27 +215,24 @@ const technologies = [
   border-color:#f97316;
   box-shadow:0 0 25px rgba(249,115,22,.35);
 }
-.card:hover .icon img{
-  transform:scale(1.12) rotate(4deg);
-  transition:.3s ease;
-}
 
-.icon img{
-  transition:.3s ease;
-}
 .icon{
   display:flex;
   justify-content:center;
   align-items:center;
   height:72px;
   margin-bottom:20px;
-  font-size:3rem;
 }
 
 .icon img{
   width:60px;
   height:60px;
   object-fit:contain;
+  transition:.3s ease;
+}
+
+.card:hover .icon img{
+  transform:scale(1.12) rotate(4deg);
 }
 
 .card h3{
