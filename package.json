@@ -1,7 +1,7 @@
 {
-  "name": "astro-temp",
+  "name": "ultimate-devops-learning-hub",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.2",
-    "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.3",
     "astro": "^7.0.6",
     "sharp": "^0.35.0"
