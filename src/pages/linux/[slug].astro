@@ -7,7 +7,7 @@ export async function getStaticPaths() {
 
   return lessons.map((lesson) => ({
     params: {
-      slug: lesson.id.replace(".md", ""),
+      slug: lesson.id,
     },
     props: {
       lesson,
@@ -24,7 +24,5 @@ const { Content } = await render(lesson);
   title={lesson.data.title}
   description={lesson.data.description}
 >
-
   <Content />
-
 </LessonLayout>

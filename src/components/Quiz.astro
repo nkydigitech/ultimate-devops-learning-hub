@@ -1,0 +1,209 @@
+---
+interface Props {
+  question: string;
+  options: string[];
+  answer: number;
+  explanation: string;
+}
+
+const { question, options, answer, explanation } = Astro.props;
+const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<div class="quiz-container" id={quizId} data-answer={answer}>
+  <div class="quiz-header">
+    <span class="quiz-badge">Knowledge Check</span>
+    <p class="quiz-question">{question}</p>
+  </div>
+
+  <div class="quiz-options">
+    {options.map((option, index) => (
+      <label class="option-label">
+        <input type="radio" name={`${quizId}-option`} value={index} />
+        <span class="option-text">{option}</span>
+      </label>
+    ))}
+  </div>
+
+  <div class="quiz-feedback hidden">
+    <div class="feedback-message"></div>
+    <p class="explanation"><strong>Explanation:</strong> {explanation}</p>
+  </div>
+
+  <button class="check-btn">Check Answer</button>
+</div>
+
+<style>
+  .quiz-container {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 32px 0;
+    transition: all 0.3s ease;
+  }
+
+  .quiz-header {
+    margin-bottom: 20px;
+  }
+
+  .quiz-badge {
+    background: #f97316;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .quiz-question {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #f8fafc;
+    line-height: 1.4;
+  }
+
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .option-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    padding: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #cbd5e1;
+  }
+
+  .option-label:hover {
+    border-color: #f97316;
+    background: #161e2e;
+  }
+
+  .option-label input[type="radio"] {
+    accent-color: #f97316;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .option-label:has(input:checked) {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.1);
+    color: white;
+  }
+
+  .check-btn {
+    background: #f97316;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+  }
+
+  .check-btn:hover {
+    background: #ea580c;
+    transform: translateY(-1px);
+  }
+
+  .check-btn:disabled {
+    background: #475569;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .quiz-feedback {
+    margin-top: 24px;
+    padding: 20px;
+    border-radius: 12px;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .quiz-feedback.hidden {
+    display: none;
+  }
+
+  .quiz-feedback.correct {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid #22c55e;
+  }
+
+  .quiz-feedback.incorrect {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid #ef4444;
+  }
+
+  .feedback-message {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+
+  .correct .feedback-message { color: #4ade80; }
+  .incorrect .feedback-message { color: #f87171; }
+
+  .explanation {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<script is:inline define:vars={{ quizId }}>
+  (function() {
+    const container = document.getElementById(quizId);
+    if (!container) return;
+
+    const checkBtn = container.querySelector('.check-btn');
+    const feedback = container.querySelector('.quiz-feedback');
+    const feedbackMsg = feedback.querySelector('.feedback-message');
+    const correctAnswer = parseInt(container.dataset.answer);
+    const options = container.querySelectorAll('input[type="radio"]');
+
+    checkBtn.addEventListener('click', () => {
+      const selectedOption = container.querySelector(`input[name="${quizId}-option"]:checked`);
+      
+      if (!selectedOption) {
+        alert('Please select an option!');
+        return;
+      }
+
+      const selectedValue = parseInt(selectedOption.value);
+      feedback.classList.remove('hidden', 'correct', 'incorrect');
+      
+      if (selectedValue === correctAnswer) {
+        feedback.classList.add('correct');
+        feedbackMsg.textContent = '✅ Correct! Well done.';
+      } else {
+        feedback.classList.add('incorrect');
+        feedbackMsg.textContent = '❌ Incorrect. Try again!';
+      }
+
+      // Disable inputs and button after check
+      options.forEach(opt => opt.disabled = true);
+      checkBtn.disabled = true;
+      checkBtn.textContent = 'Completed';
+    });
+  })();
+</script>

@@ -1,0 +1,108 @@
+---
+interface Props {
+  title: string;
+  href: string;
+}
+
+const { title, href } = Astro.props;
+---
+
+<div class="next-lesson-cta">
+  <div class="cta-content">
+    <span class="cta-label">Up Next</span>
+    <h3>{title}</h3>
+    <p>You've mastered this lesson. Continue your journey to becoming a DevOps Engineer.</p>
+  </div>
+  
+  <a href={href} class="next-btn">
+    Start Next Lesson
+    <span class="arrow">→</span>
+  </a>
+</div>
+
+<style>
+  .next-lesson-cta {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid #334155;
+    border-radius: 24px;
+    padding: 40px;
+    margin: 80px 0 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 40px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .cta-label {
+    color: #f97316;
+    text-transform: uppercase;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  .cta-content h3 {
+    font-size: 2rem;
+    color: white;
+    margin: 0 0 16px 0;
+  }
+
+  .cta-content p {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    margin: 0;
+    max-width: 500px;
+  }
+
+  .next-btn {
+    background: #f97316;
+    color: white;
+    text-decoration: none;
+    padding: 18px 36px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    box-shadow: 0 10px 20px rgba(249, 115, 22, 0.2);
+  }
+
+  .next-btn:hover {
+    background: #ea580c;
+    transform: translateX(8px);
+    box-shadow: 0 15px 30px rgba(249, 115, 22, 0.4);
+  }
+
+  .arrow {
+    font-size: 1.4rem;
+    transition: transform 0.3s ease;
+  }
+
+  .next-btn:hover .arrow {
+    transform: translateX(4px);
+  }
+
+  @media (max-width: 768px) {
+    .next-lesson-cta {
+      flex-direction: column;
+      text-align: center;
+      padding: 30px;
+      gap: 30px;
+    }
+
+    .cta-content p {
+      margin: 0 auto;
+    }
+
+    .next-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>

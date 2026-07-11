@@ -1,0 +1,116 @@
+---
+title: "Introduction to Linux"
+description: "Discover what Linux is, why it dominates cloud computing, and why every DevOps Engineer must master it."
+order: 1
+---
+
+import CommandBlock from "../../components/CommandBlock.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Lab from "../../components/Lab.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import LessonHeader from "../../components/LessonHeader.astro";
+import NextLesson from "../../components/NextLesson.astro";
+import Terminal from "../../components/Terminal.astro";
+
+
+<LessonHeader 
+  title="Introduction to Linux" 
+  description="Master the foundation of modern cloud infrastructure and DevOps engineering."
+  timeToRead="8 min"
+/>
+
+Welcome to the Linux section of the Ultimate DevOps Learning Hub.
+
+If there is one technology that every DevOps Engineer, Cloud Engineer, Site Reliability Engineer (SRE), and Platform Engineer must master, it is **Linux**.
+
+Almost every modern cloud application runs on Linux servers.
+
+---
+
+# 🚀 Why Linux?
+
+Linux is an **open-source operating system**. Unlike Windows, it's built for stability, security, and automation.
+
+<Tip title="Why This Matters">
+If your goal is to become a DevOps Engineer, Linux is your foundation. Almost every cloud platform, container platform, and automation tool you will use runs on Linux.
+</Tip>
+
+### Where is Linux Used?
+
+| Sector | Usage |
+|------------|---------------|
+| **Cloud Computing** | AWS, Azure, Google Cloud |
+| **Containers** | Docker, Podman, Kubernetes |
+| **Web Servers** | Nginx, Apache, Node.js |
+| **Databases** | MySQL, PostgreSQL, Redis |
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz 
+  question="Which operating system powers more than 96% of the world's top one million web servers?"
+  options={["Windows Server", "macOS", "Linux", "Solaris"]}
+  answer={2}
+  explanation="Linux dominates the server market due to its stability, security, and open-source nature. It is the backbone of the modern internet."
+/>
+
+<Quiz 
+  question="What is a Linux 'Distribution' (Distro)?"
+  options={["A type of hardware", "A version of the Linux OS", "A networking protocol", "A database engine"]}
+  answer={1}
+  explanation="A distribution is a version of the Linux operating system that includes the kernel along with a collection of software, libraries, and tools (e.g., Ubuntu, CentOS, Debian)."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why do DevOps engineers prefer Linux over Windows for production environments?">
+  Linux offers several advantages for DevOps:
+  - **Open Source:** No licensing costs and full control over the OS.
+  - **Security:** Permissions and user management are built-in from the ground up.
+  - **Automation:** The command-line interface (CLI) is extremely powerful and easily scriptable.
+  - **Performance:** Linux is lightweight and can run without a graphical user interface (GUI), saving resources for applications.
+</InterviewPrep>
+
+---
+
+# 🧪 Hands-on Practice
+
+<Exercise title="Your First Linux Interaction">
+  <div slot="tasks">
+    1. Open your terminal (WSL, Linux, or macOS).
+    2. Run the `whoami` command to see your current user.
+    3. Run the `uname -a` command to see system information.
+    4. Print a welcome message using `echo`.
+  </div>
+  
+  <div slot="solution">
+    <Terminal 
+      command="whoami && uname -a && echo 'Hello DevOps!'" 
+      output={`student\nLinux devops-hub 5.15.0-generic #54-Ubuntu SMP... x86_64\nHello DevOps!`}
+    />
+  </div>
+</Exercise>
+
+<Warning title="Don't Memorize Commands">
+One of the biggest mistakes beginners make is trying to memorize hundreds of Linux commands. Instead, understand the *why* and the *how*. The commands will become natural through practice.
+</Warning>
+
+---
+
+# Summary
+
+In this lesson you learned:
+- What Linux is and why it's the foundation of DevOps.
+- The role of Linux in Cloud, Containers, and Web Servers.
+- The concept of Linux Distributions (Distros).
+
+<NextLesson 
+  title="Installing Linux" 
+  href="/ultimate-devops-learning-hub/linux/installing-linux" 
+/>

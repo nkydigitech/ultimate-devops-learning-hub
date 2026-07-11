@@ -1,0 +1,31 @@
+---
+const { title="Hands-on Lab" } = Astro.props;
+---
+
+<section class="lab">
+
+<h2>🧪 {title}</h2>
+
+<slot />
+
+</section>
+
+<style>
+
+.lab{
+
+margin:40px 0;
+padding:30px;
+background:#132238;
+border-radius:16px;
+border:1px solid #2f4b70;
+
+}
+
+.lab h2{
+
+margin-bottom:20px;
+
+}
+
+</style>

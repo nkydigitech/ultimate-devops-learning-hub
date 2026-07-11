@@ -1,0 +1,152 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  timeToRead?: string;
+  icon?: string;
+}
+
+const { 
+  title, 
+  description, 
+  timeToRead = "10 min", 
+  icon = "🐧" 
+} = Astro.props;
+
+const baseUrl = import.meta.env.BASE_URL;
+---
+
+<header class="lesson-header">
+  <div class="breadcrumb">
+    <a href={baseUrl}>Home</a> 
+    <span class="sep">/</span> 
+    <a href={`${baseUrl}linux/introduction`}>Linux</a> 
+    <span class="sep">/</span> 
+    <span class="current">{title}</span>
+  </div>
+
+  <div class="header-main">
+    <div class="icon-box">{icon}</div>
+    <div class="header-text">
+      <h1>{title}</h1>
+      <p class="desc">{description}</p>
+      
+      <div class="meta">
+        <span class="meta-item">
+          <span class="meta-icon">⏱</span>
+          {timeToRead} read
+        </span>
+        <span class="meta-item">
+          <span class="meta-icon">📚</span>
+          DevOps Fundamentals
+        </span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+  .lesson-header {
+    margin-bottom: 50px;
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #94a3b8;
+    margin-bottom: 30px;
+  }
+
+  .breadcrumb a {
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .breadcrumb a:hover {
+    color: #f97316;
+  }
+
+  .breadcrumb .sep {
+    color: #475569;
+  }
+
+  .breadcrumb .current {
+    color: #f8fafc;
+    font-weight: 500;
+  }
+
+  .header-main {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  .icon-box {
+    width: 80px;
+    height: 80px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    flex-shrink: 0;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .header-text h1 {
+    font-size: 2.8rem;
+    line-height: 1.1;
+    margin: 0 0 12px 0;
+    color: white;
+  }
+
+  .desc {
+    font-size: 1.25rem;
+    color: #94a3b8;
+    margin-bottom: 20px;
+    line-height: 1.6;
+    max-width: 700px;
+  }
+
+  .meta {
+    display: flex;
+    gap: 20px;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    background: #132238;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #233550;
+  }
+
+  .meta-icon {
+    font-size: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .header-main {
+      flex-direction: column;
+    }
+
+    .icon-box {
+      width: 60px;
+      height: 60px;
+      font-size: 2rem;
+    }
+
+    .header-text h1 {
+      font-size: 2.2rem;
+    }
+  }
+</style>

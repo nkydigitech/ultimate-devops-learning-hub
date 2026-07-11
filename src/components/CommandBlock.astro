@@ -1,0 +1,132 @@
+---
+interface Props {
+  command: string;
+  language?: string;
+}
+
+const {
+  command,
+  language = "bash"
+} = Astro.props;
+
+const id = `cmd-${Math.random().toString(36).slice(2)}`;
+---
+
+<div class="terminal">
+
+  <div class="terminal-header">
+
+    <div class="dots">
+      <span class="red"></span>
+      <span class="yellow"></span>
+      <span class="green"></span>
+    </div>
+
+    <span class="lang">{language}</span>
+
+    <button
+      class="copy-btn"
+      onclick={`navigator.clipboard.writeText(document.getElementById('${id}').innerText)
+      .then(()=>{
+        this.innerText='Copied!';
+        setTimeout(()=>this.innerText='Copy',1500);
+      });`}
+    >
+      Copy
+    </button>
+
+  </div>
+
+  <pre id={id}><code>{command}</code></pre>
+
+</div>
+
+<style>
+
+.terminal{
+
+margin:35px 0;
+border-radius:16px;
+overflow:hidden;
+background:#0d1117;
+border:1px solid #293548;
+box-shadow:0 8px 25px rgba(0,0,0,.35);
+
+}
+
+.terminal-header{
+
+display:flex;
+align-items:center;
+padding:14px 18px;
+background:#161b22;
+border-bottom:1px solid #293548;
+
+}
+
+.dots{
+
+display:flex;
+gap:8px;
+
+}
+
+.dots span{
+
+width:12px;
+height:12px;
+border-radius:50%;
+
+}
+
+.red{background:#ff5f56;}
+.yellow{background:#ffbd2e;}
+.green{background:#27c93f;}
+
+.lang{
+
+margin-left:18px;
+color:#94a3b8;
+font-size:.85rem;
+letter-spacing:.08em;
+text-transform:uppercase;
+
+}
+
+.copy-btn{
+
+margin-left:auto;
+background:#f97316;
+border:none;
+padding:8px 15px;
+border-radius:8px;
+cursor:pointer;
+color:white;
+font-weight:600;
+
+}
+
+.copy-btn:hover{
+
+background:#ea580c;
+
+}
+
+pre{
+
+margin:0;
+padding:22px;
+overflow:auto;
+
+}
+
+code{
+
+font-family:Consolas,Monaco,monospace;
+font-size:.95rem;
+line-height:1.8;
+color:#22c55e;
+
+}
+
+</style>

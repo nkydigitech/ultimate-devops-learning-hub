@@ -1,0 +1,127 @@
+---
+interface Props {
+  question: string;
+}
+
+const { question } = Astro.props;
+const prepId = `prep-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<div class="prep-card" id={prepId}>
+  <div class="prep-header">
+    <span class="prep-badge">Interview Q&A</span>
+    <p class="prep-question">{question}</p>
+  </div>
+
+  <div class="prep-answer-container hidden">
+    <div class="answer-header">Answer</div>
+    <div class="answer-content">
+      <slot />
+    </div>
+  </div>
+
+  <button class="reveal-btn">Reveal Answer</button>
+</div>
+
+<style>
+  .prep-card {
+    background: #132238;
+    border: 1px solid #233550;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 32px 0;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .prep-header {
+    margin-bottom: 20px;
+  }
+
+  .prep-badge {
+    background: #a855f7;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .prep-question {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1.4;
+  }
+
+  .prep-answer-container {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #233550;
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  .prep-answer-container.hidden {
+    display: none;
+  }
+
+  .answer-header {
+    color: #a855f7;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+
+  .answer-content {
+    color: #cbd5e1;
+    line-height: 1.7;
+  }
+
+  .reveal-btn {
+    margin-top: 20px;
+    background: transparent;
+    color: #a855f7;
+    border: 1px solid #a855f7;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+  }
+
+  .reveal-btn:hover {
+    background: #a855f7;
+    color: white;
+  }
+
+  .reveal-btn.active {
+    display: none;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<script is:inline define:vars={{ prepId }}>
+  (function() {
+    const container = document.getElementById(prepId);
+    if (!container) return;
+
+    const revealBtn = container.querySelector('.reveal-btn');
+    const answerContainer = container.querySelector('.prep-answer-container');
+
+    revealBtn.addEventListener('click', () => {
+      answerContainer.classList.toggle('hidden');
+      revealBtn.classList.add('active');
+    });
+  })();
+</script>
