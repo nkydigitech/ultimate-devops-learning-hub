@@ -6,6 +6,8 @@ interface Props {
   icon?: string;
 }
 
+import { withBase } from "../utils/url";
+
 const { 
   title, 
   description, 
@@ -13,14 +15,15 @@ const {
   icon = "🐧" 
 } = Astro.props;
 
-const baseUrl = import.meta.env.BASE_URL;
+const homeUrl = withBase("/");
+const linuxUrl = withBase("/linux/introduction");
 ---
 
 <header class="lesson-header">
   <div class="breadcrumb">
-    <a href={baseUrl}>Home</a> 
+    <a href={homeUrl}>Home</a> 
     <span class="sep">/</span> 
-    <a href={`${baseUrl}linux/introduction`}>Linux</a> 
+    <a href={linuxUrl}>Linux</a> 
     <span class="sep">/</span> 
     <span class="current">{title}</span>
   </div>
