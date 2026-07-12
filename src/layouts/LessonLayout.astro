@@ -1,4 +1,6 @@
 ---
+import { withBase } from "../utils/url";
+
 interface Props {
   title: string;
   description: string;
@@ -6,52 +8,54 @@ interface Props {
 
 const { title, description } = Astro.props;
 
-const home = import.meta.env.BASE_URL;
+const home = withBase("/");
 
 const lessons = [
   {
     title: "Introduction",
     slug: "introduction",
-    url: `${home}linux/introduction`
+    url: withBase("/linux/introduction")
   },
    {
     title: "Installing Linux",
     slug: "installing-linux",
-    url: `${home}linux/installing-linux`
+    url: withBase("/linux/installing-linux")
   },
   {
     title: "Linux Basics",
     slug: "linux-basics",
-    url: `${home}linux/linux-basics`
+    url: withBase("/linux/linux-basics")
   },
   {
     title: "Filesystem",
     slug: "filesystem",
-    url: `${home}linux/filesystem`
+    url: withBase("/linux/filesystem")
   },
   {
     title: "Permissions",
     slug: "permissions",
-    url: `${home}linux/permissions`
+    url: withBase("/linux/permissions")
   },
   {
     title: "Bash",
     slug: "bash",
-    url: `${home}linux/bash`
+    url: withBase("/linux/bash")
   },
   {
     title: "Networking",
     slug: "networking",
-    url: `${home}linux/networking`
+    url: withBase("/linux/networking")
   },
   {
     title: "SSH",
     slug: "ssh",
-    url: `${home}linux/ssh`
+    url: withBase("/linux/ssh")
   }
 ];
 
-const currentSlug = Astro.url.pathname.split("/").pop();
+// Derive the current slug from the last non-empty path segment so it works
+// whether or not the URL has a trailing slash (GitHub Pages serves /.../slug/).
+const currentSlug = Astro.url.pathname.split("/").filter(Boolean).pop();
 
 const currentIndex = lessons.findIndex(
   lesson => lesson.slug === currentSlug
@@ -63,7 +67,7 @@ const previousLesson =
     : null;
 
 const nextLesson =
-  currentIndex < lessons.length - 1
+  currentIndex !== -1 && currentIndex < lessons.length - 1
     ? lessons[currentIndex + 1]
     : null;
 ---

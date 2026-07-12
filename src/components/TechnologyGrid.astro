@@ -18,6 +18,7 @@ import mcp from "../assets/icons/mcp.svg";
 import production from "../assets/icons/production.svg";
 import claude from "../assets/icons/claude.svg";
 import zipkin from "../assets/icons/zipkin.svg";
+import { withBase } from "../utils/url";
 
 const technologies = [
   {
@@ -25,7 +26,7 @@ const technologies = [
     icon: linux.src,
     level: "Beginner",
     desc: "Master the Linux command line used in production servers.",
-    href: "/ultimate-devops-learning-hub/linux/introduction"
+    href: withBase("/linux/introduction")
   },
 
   {
