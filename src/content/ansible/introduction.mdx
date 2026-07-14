@@ -1,0 +1,170 @@
+---
+title: "Introduction to Ansible"
+description: "Automate configuration across many servers at once with Ansible — agentless, human-readable infrastructure automation."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Ansible"
+  description="Configuration management and automation for one server or a thousand — no agents required."
+  timeToRead="11 min"
+  icon="🅰️"
+  section="Ansible"
+  sectionUrl="/ansible/introduction"
+/>
+
+**Ansible** automates what you'd otherwise do by hand on servers — installing packages, editing configs, restarting services — and does it consistently across **many machines at once**. It's agentless (just SSH), and its files are readable YAML, which is why it's one of the most popular configuration-management tools in DevOps.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what configuration management solves
+- Explain how Ansible works and why it's "agentless"
+- Know the key Ansible concepts (control node, inventory, modules, playbooks)
+- Install Ansible and verify it
+
+---
+
+# The Problem Ansible Solves
+
+Imagine setting up 20 identical web servers by hand: SSH in, install nginx, copy a config, start the service — 20 times. It's slow, and easy to make one machine subtly different from the rest ("configuration drift").
+
+Ansible lets you **describe the desired state once** and apply it to all 20 servers automatically and repeatably.
+
+<Tip title="Idempotency — the key idea">
+Ansible tasks are **idempotent**: running the same playbook twice doesn't do the work twice. If nginx is already installed, Ansible reports "ok" and moves on. You describe the *end state*, not the steps — so it's safe to re-run anytime.
+</Tip>
+
+---
+
+# How Ansible Works
+
+<CommandBlock command={`Control Node (your laptop / a CI runner)
+   │  runs ansible, holds playbooks + inventory
+   │  connects over SSH  (no agent on targets!)
+   ▼
+Managed Nodes  ──► web-01, web-02, db-01 ...`} language="text" />
+
+- **Agentless:** targets need only SSH and Python — nothing to install or maintain on them. This is Ansible's biggest advantage over agent-based tools.
+- **Push model:** the control node pushes changes out over SSH when you run it.
+
+## Core Vocabulary
+
+| Term | Meaning |
+|------|---------|
+| **Control node** | The machine that runs Ansible |
+| **Managed node** | A server Ansible configures (over SSH) |
+| **Inventory** | The list of managed nodes |
+| **Module** | A unit of work (e.g. `apt`, `copy`, `service`) |
+| **Task** | A single call to a module |
+| **Playbook** | A YAML file of tasks describing desired state |
+
+---
+
+# Install Ansible
+
+Ansible installs on the **control node only**:
+
+<CommandBlock command={`# Ubuntu / WSL
+sudo apt update && sudo apt install -y ansible
+
+# or via pip
+pip3 install ansible`} />
+
+<Terminal
+  command="ansible --version"
+  output={`ansible [core 2.16.3]
+  python version = 3.12.3
+  jinja version = 3.1.3`}
+/>
+
+<Warning title="Nothing to install on the servers">
+Don't try to install an Ansible "agent" on your target machines — there isn't one. As long as you can SSH into a server and it has Python, Ansible can manage it.
+</Warning>
+
+---
+
+# 🧪 Hands-on
+
+<Exercise title="Get Ansible Running">
+  <div slot="tasks">
+    1. Install Ansible on your control machine (laptop or a VM).
+    2. Run `ansible --version` and confirm it prints a version.
+    3. In one sentence, write down why Ansible being "agentless" is useful.
+    4. List two tasks on a server you'd want to automate with it.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="ansible --version | head -1"
+      output="ansible [core 2.16.3]"
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What does it mean that Ansible is 'agentless'?"
+  options={[
+    "It runs without any configuration files",
+    "Managed servers need no special software installed — Ansible connects over SSH",
+    "It cannot manage more than one server",
+    "It only works on the local machine"
+  ]}
+  answer={1}
+  explanation="Ansible connects to managed nodes over standard SSH (they just need Python). There's no persistent agent to install or maintain on the targets."
+/>
+
+<Quiz
+  question="What does 'idempotent' mean for an Ansible task?"
+  options={[
+    "It can only run once",
+    "Running it multiple times produces the same end state without redoing completed work",
+    "It runs faster each time",
+    "It requires root access"
+  ]}
+  answer={1}
+  explanation="Idempotency means you describe the desired end state; re-running a playbook won't repeat work that's already done, making it safe to run repeatedly."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How does Ansible differ from tools like Puppet or Chef?">
+  The key distinctions interviewers look for:
+
+  - **Agentless vs agent-based:** Ansible connects over SSH and needs no agent on managed nodes. Puppet and Chef traditionally run a persistent agent that pulls configuration from a central server.
+  - **Push vs pull:** Ansible pushes changes when you run it; Puppet/Chef agents pull on a schedule.
+  - **Language:** Ansible uses simple declarative YAML, which is easy to read and get started with. Puppet and Chef use their own DSL/Ruby, which is more powerful but has a steeper learning curve.
+  - **Setup cost:** Ansible's agentless model makes it very quick to adopt — if you have SSH access, you can start managing a server immediately.
+
+  I'd summarise it as: Ansible favours simplicity and low setup cost, which is why it's often the first configuration-management tool teams adopt.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You understand what Ansible is for, its agentless push model, and its core vocabulary. Next, we tell Ansible *which* servers to manage with an **inventory**, and run our first commands against them.
+
+<NextLesson
+  title="Ansible Inventory & Ad-Hoc Commands"
+  href="/ultimate-devops-learning-hub/ansible/inventory"
+/>

@@ -2,7 +2,9 @@ import type { CollectionEntry } from "astro:content";
 import { withBase } from "./url";
 
 /** Any lesson section collection. */
-type LessonEntry = CollectionEntry<"linux" | "github" | "aws" | "azure">;
+type LessonEntry = CollectionEntry<
+  "linux" | "github" | "aws" | "azure" | "python" | "ansible"
+>;
 
 export interface LessonNavLink {
   title: string;
