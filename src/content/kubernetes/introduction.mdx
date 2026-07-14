@@ -1,0 +1,195 @@
+---
+title: "Introduction to Kubernetes"
+description: "Understand what Kubernetes is, the problems it solves, and its core architecture — explained in plain language."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Kubernetes"
+  description="The system that runs containers across many machines, and heals itself when things break."
+  timeToRead="10 min"
+  icon="☸️"
+  section="Kubernetes"
+  sectionUrl="/kubernetes/introduction"
+/>
+
+Docker is great for running containers on one machine. But production needs *hundreds* of containers across *many* machines, restarted automatically when they crash and scaled up when traffic spikes. **Kubernetes** (often written **K8s**) is the system that manages all of that for you.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what Kubernetes does and why it exists
+- Know the difference between the control plane and worker nodes
+- Understand the core objects: Pod, Node, Cluster
+- Grasp the idea of *declarative* configuration
+
+---
+
+# The Problem Kubernetes Solves
+
+Imagine running 200 containers by hand. You'd have to:
+
+- Decide which machine each container runs on
+- Restart any container that crashes
+- Add more copies when traffic rises, remove them when it falls
+- Route traffic to healthy containers only
+- Roll out new versions without downtime
+
+Kubernetes automates *all* of this. You tell it the desired state — "I want 5 copies of this app running" — and it makes reality match, continuously.
+
+<Tip title="Declarative, not imperative">
+You don't tell Kubernetes *how* to do things step by step. You describe the **desired state**, and Kubernetes constantly works to keep the cluster in that state. This is the single most important idea in K8s.
+</Tip>
+
+---
+
+# The Big Picture: a Cluster
+
+A Kubernetes **cluster** is a set of machines (nodes) working together, split into two roles:
+
+| Part | Role |
+|------|------|
+| **Control plane** | The brain — makes decisions, schedules work, watches state |
+| **Worker nodes** | The muscle — actually run your containers |
+
+<CommandBlock command={`        ┌──────────── Control Plane ────────────┐
+        │  API Server · Scheduler · Controller   │
+        │  etcd (the cluster's memory)           │
+        └───────────────────┬────────────────────┘
+                            │ commands
+        ┌───────────┬───────┴───────┬────────────┐
+      Node 1       Node 2         Node 3
+    [Pods...]     [Pods...]      [Pods...]`} language="text" />
+
+---
+
+# Key Components
+
+**Control plane:**
+
+- **API Server** — the front door; every command goes through it.
+- **Scheduler** — decides which node a new Pod runs on.
+- **Controller Manager** — watches state and fixes drift (e.g. restarts a dead Pod).
+- **etcd** — a key-value store holding the entire cluster state.
+
+**Worker nodes:**
+
+- **kubelet** — the agent that runs Pods on the node.
+- **kube-proxy** — handles networking rules on the node.
+- **Container runtime** — actually runs the containers (e.g. containerd).
+
+---
+
+# The Pod — the Smallest Unit
+
+You don't deploy containers directly in Kubernetes — you deploy **Pods**. A Pod wraps one (occasionally more) container and is the smallest thing Kubernetes schedules.
+
+<Tip title="Pods are cattle, not pets">
+Pods are disposable. If one dies, Kubernetes doesn't nurse it back to health — it throws it away and creates a fresh one. Your app must be designed to handle this, which is what makes it resilient.
+</Tip>
+
+---
+
+# See It Yourself
+
+`kubectl` is the command-line tool for talking to a cluster:
+
+<CommandBlock command={`kubectl version --short     # client + server versions
+kubectl get nodes           # list the machines in the cluster
+kubectl get pods -A         # all pods across all namespaces`} />
+
+<Terminal
+  command="kubectl get nodes"
+  output={`NAME             STATUS   ROLES           AGE   VERSION
+control-plane    Ready    control-plane   5d    v1.30.1
+worker-node-1    Ready    <none>          5d    v1.30.1
+worker-node-2    Ready    <none>          5d    v1.30.1`}
+/>
+
+Here the cluster has one control-plane node and two workers, all `Ready`.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Explore a Cluster">
+  <div slot="tasks">
+    1. List the nodes in the cluster and note their roles
+    2. List all pods across every namespace
+    3. Describe one node to see its capacity (CPU, memory)
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="kubectl get pods -n kube-system"
+      output={`NAME                          READY   STATUS    RESTARTS   AGE
+coredns-76f75df574-abcde      1/1     Running   0          5d
+kube-proxy-x9k2p              1/1     Running   0          5d
+etcd-control-plane            1/1     Running   0          5d`}
+    />
+    These are the system pods that make the cluster itself work — DNS, proxy, and etcd.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the smallest deployable unit in Kubernetes?"
+  options={["A container", "A Pod", "A Node", "A Cluster"]}
+  answer={1}
+  explanation="Kubernetes schedules Pods, not raw containers. A Pod wraps one or more containers and is the smallest unit K8s manages."
+/>
+
+<Quiz
+  question="What does 'declarative configuration' mean in Kubernetes?"
+  options={[
+    "You issue step-by-step commands manually",
+    "You describe the desired state and Kubernetes works to maintain it",
+    "You must restart pods yourself",
+    "Configuration is optional"
+  ]}
+  answer={1}
+  explanation="You declare the desired state (e.g. 5 replicas). Kubernetes continuously reconciles the actual state to match, restarting and rescheduling as needed."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What problems does Kubernetes solve that Docker alone does not?">
+  Docker runs containers on a single host; Kubernetes orchestrates them across a fleet:
+
+  - **Self-healing:** restarts failed containers and reschedules them onto healthy nodes.
+  - **Scaling:** adds or removes replicas automatically based on load.
+  - **Service discovery & load balancing:** gives your app a stable address even as Pods come and go.
+  - **Rolling updates & rollbacks:** ships new versions with zero downtime, and reverts safely if they fail.
+  - **Declarative management:** the whole system is described in version-controlled YAML.
+
+  In short, Docker packages the app; Kubernetes *operates* it reliably at scale.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand what Kubernetes is, the control plane vs worker node split, the core components, and the declarative model built around Pods. Next, you'll actually run an app using Pods and Deployments.
+
+<NextLesson
+  title="Pods & Deployments"
+  href="/ultimate-devops-learning-hub/kubernetes/pods-and-deployments"
+/>

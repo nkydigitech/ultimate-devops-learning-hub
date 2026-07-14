@@ -1,0 +1,192 @@
+---
+title: "Setup & Your First Job"
+description: "Complete the Jenkins setup and create your first freestyle job that pulls code from Git and runs a build."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Setup & Your First Job"
+  description="From a running Jenkins to a job that builds your code automatically."
+  timeToRead="10 min"
+  icon="👷"
+  section="Jenkins"
+  sectionUrl="/jenkins/introduction"
+/>
+
+With Jenkins running, let's finish the setup and create a **job** — the basic unit of work. We'll start with a freestyle job to learn the moving parts, then you'll be ready for pipelines.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Complete the initial Jenkins setup
+- Understand the difference between freestyle jobs and pipelines
+- Create a job that pulls from Git and runs a build
+- Trigger builds automatically on code changes
+
+---
+
+# Finishing Setup
+
+After entering the initial admin password, the setup wizard walks you through:
+
+1. **Install suggested plugins** — a sensible default set (Git, Pipeline, credentials).
+2. **Create an admin user** — don't keep using the initial password.
+3. **Set the Jenkins URL** — how Jenkins refers to itself in links and webhooks.
+
+<Warning title="Secure it before exposing it">
+Never expose a fresh Jenkins to the internet without authentication and HTTPS. An open Jenkins is a well-known target — attackers use it to run arbitrary builds (i.e. arbitrary code). Lock down security first.
+</Warning>
+
+---
+
+# Jobs: Freestyle vs Pipeline
+
+| Type | What it is | Best for |
+|------|-----------|----------|
+| **Freestyle** | Configured through the web UI with forms | Simple tasks, learning |
+| **Pipeline** | Defined as code in a `Jenkinsfile` | Real projects (versioned, reviewable) |
+
+<Tip title="Freestyle to learn, Pipeline for real">
+Freestyle jobs are great for understanding the concepts. But production work belongs in a `Jenkinsfile` committed to your repo — it's version-controlled, code-reviewed, and reproducible. We'll build one next lesson.
+</Tip>
+
+---
+
+# Creating a Freestyle Job
+
+**New Item → Freestyle project.** The key sections:
+
+- **Source Code Management** — point it at your Git repository URL and branch.
+- **Build Triggers** — decide when it runs (poll SCM, webhook, schedule).
+- **Build Steps** — the commands to execute.
+
+A typical build step:
+
+<CommandBlock command={`# Execute shell (build step)
+echo "Building commit \$GIT_COMMIT"
+npm ci
+npm test
+npm run build`} language="bash" />
+
+<Terminal
+  command="# Console Output of a successful build:"
+  output={`Started by user admin
+Cloning repository https://github.com/you/repo.git
+ > git checkout -f 3a9f1c2...
++ npm ci
++ npm test
+  Tests: 12 passed
++ npm run build
+Finished: SUCCESS`}
+/>
+
+---
+
+# Triggering Builds Automatically
+
+You want builds to run when code changes, not only when you click. Two common approaches:
+
+| Trigger | How it works |
+|---------|--------------|
+| **Webhook** | Git provider notifies Jenkins instantly on push (preferred) |
+| **Poll SCM** | Jenkins checks the repo on a schedule (e.g. `H/5 * * * *`) |
+
+<Tip title="Prefer webhooks">
+Webhooks fire the moment a push happens — instant feedback and no wasted polling. Polling is a fallback for when your Git host can't reach Jenkins (e.g. behind a firewall).
+</Tip>
+
+The `H` in `H/5 * * * *` is Jenkins-specific: it spreads load by hashing the job name to pick a consistent-but-staggered minute, instead of every job firing at exactly the same time.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Create a Build Job">
+  <div slot="tasks">
+    1. Create a freestyle job pointing at a Git repository
+    2. Add a shell build step that installs dependencies and runs tests
+    3. Configure it to build on every push (webhook) or every 5 minutes (poll SCM)
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`# Source Code Management → Git
+Repository URL: https://github.com/you/repo.git
+Branch: */main
+
+# Build Triggers → Poll SCM
+Schedule: H/5 * * * *
+
+# Build → Execute shell
+npm ci && npm test && npm run build`} language="text" />
+    A green "SUCCESS" in the console output confirms the whole chain worked end to end.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the main advantage of a Pipeline job over a freestyle job?"
+  options={[
+    "It runs faster",
+    "It's defined as code in a Jenkinsfile — version-controlled, reviewable, and reproducible",
+    "It doesn't need plugins",
+    "It can't fail"
+  ]}
+  answer={1}
+  explanation="Pipeline jobs live in a Jenkinsfile committed to the repo, so they're versioned, code-reviewed, and reproducible — unlike freestyle jobs configured only through the UI."
+/>
+
+<Quiz
+  question="Why are webhooks generally preferred over polling SCM for triggering builds?"
+  options={[
+    "Polling is more secure",
+    "Webhooks trigger builds instantly on push with no wasted checks",
+    "Webhooks don't need a network",
+    "There is no difference"
+  ]}
+  answer={1}
+  explanation="Webhooks notify Jenkins the moment code is pushed, giving instant feedback without repeatedly polling. Polling is a fallback when the Git host can't reach Jenkins directly."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What are important steps to secure a Jenkins instance?">
+  Jenkins runs arbitrary code, so security is critical:
+
+  - **Enable authentication and authorization** — never run it open; use role-based access control.
+  - **Use HTTPS** and put it behind a reverse proxy or VPN, not directly on the public internet.
+  - **Keep Jenkins and plugins updated** — plugins are a frequent source of vulnerabilities.
+  - **Store credentials in the Credentials store**, never in job config or scripts.
+  - **Run builds on agents, not the controller**, to limit what build code can touch.
+  - **Restrict who can configure jobs**, since a job can execute anything.
+
+  Treating Jenkins as a high-value target — because it is one — guides all of these decisions.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed setup, learned freestyle vs pipeline jobs, created a build job from Git, and set up automatic triggers. Now it's time to define pipelines as code with a Jenkinsfile.
+
+<NextLesson
+  title="Pipelines as Code"
+  href="/ultimate-devops-learning-hub/jenkins/declarative-pipeline"
+/>
