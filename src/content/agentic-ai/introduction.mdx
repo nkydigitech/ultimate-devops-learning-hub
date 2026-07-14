@@ -1,0 +1,191 @@
+---
+title: "Introduction to Agentic AI"
+description: "Understand what agentic AI is, how it differs from a plain chatbot, and why it's transforming how DevOps work gets done."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Agentic AI"
+  description="From answering questions to taking action — AI that actually does the work."
+  timeToRead="9 min"
+  icon="🤖"
+  section="Agentic AI"
+  sectionUrl="/agentic-ai/introduction"
+/>
+
+A chatbot answers your question. An **AI agent** takes a goal, decides on the steps, uses tools to carry them out, and checks its own progress until the goal is done. That shift — from *answering* to *acting* — is what "agentic AI" means, and it's rapidly changing how DevOps and engineering teams work.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what a large language model (LLM) is, at a high level
+- Know the difference between a chatbot and an agent
+- Understand the agent loop: reason → act → observe
+- See where agentic AI fits into DevOps
+
+---
+
+# LLMs in One Minute
+
+A **large language model** is a system trained on vast amounts of text to predict and generate language. Given some input (a **prompt**), it produces a useful response. Modern LLMs can write code, summarise logs, explain errors, and follow instructions.
+
+<Tip title="The mental model">
+Think of an LLM as an extremely well-read assistant that reasons in text. It doesn't "know" live facts about your systems unless you *give* it that context — which is exactly what agents and tools do.
+</Tip>
+
+---
+
+# Chatbot vs Agent
+
+| | **Chatbot** | **Agent** |
+|---|-------------|-----------|
+| Input | A question | A goal |
+| Output | An answer | Completed actions |
+| Tools | None | Can call tools/APIs |
+| Steps | One turn | Many steps, looping |
+| Example | "How do I restart a pod?" | "Find and restart the crashing pods" |
+
+The agent doesn't just *tell* you what to do — given the right tools and permissions, it can *do* it.
+
+---
+
+# The Agent Loop
+
+An agent works in a cycle until the goal is met:
+
+<CommandBlock command={`         ┌──────────────────────────────┐
+         ▼                              │
+   1. REASON  →  2. ACT  →  3. OBSERVE ─┘
+   (plan next   (use a       (read the
+    step)        tool)        result)`} language="text" />
+
+1. **Reason** — decide the next step toward the goal.
+2. **Act** — call a tool (run a command, query an API, read a file).
+3. **Observe** — take in the result and update the plan.
+
+It repeats this loop, adapting as it goes, until the task is complete or it needs human input.
+
+---
+
+# Where It Fits in DevOps
+
+Agentic AI is showing up across the DevOps lifecycle:
+
+- **Incident response** — summarise alerts, correlate logs, suggest likely root causes.
+- **Code & config** — draft Dockerfiles, pipelines, and Terraform, then explain them.
+- **Operations** — triage tickets, generate runbooks, answer "why is this failing?"
+- **Review** — flag risky changes and security issues in pull requests.
+
+<Warning title="Agents need guardrails">
+An agent that can *act* can also act wrongly. Production systems require guardrails: least-privilege access, human approval for risky actions, and full audit logs. Never give an agent unrestricted power over live infrastructure.
+</Warning>
+
+---
+
+# See the Idea in Code
+
+At its core, an agent loop is simple. This pseudocode captures the shape:
+
+<CommandBlock command={`goal = "Find why the checkout service is erroring"
+while not done:
+    thought = llm.reason(goal, history)      # decide next step
+    action  = thought.tool_call              # e.g. read_logs("checkout")
+    result  = run_tool(action)               # execute it
+    history.append(result)                   # observe
+    done    = llm.is_goal_met(goal, history) # check progress`} language="python" />
+
+The LLM provides the reasoning; the **tools** give it the ability to actually inspect and change the world.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Design an Agent Loop on Paper">
+  <div slot="tasks">
+    1. Pick a DevOps goal, e.g. "diagnose a failing deployment"
+    2. List the tools the agent would need (read logs, list pods, describe events)
+    3. Write out three iterations of reason → act → observe
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`Goal: diagnose failing deployment
+
+1. REASON: check pod status → ACT: kubectl get pods → OBSERVE: 1 pod CrashLoopBackOff
+2. REASON: read its logs   → ACT: kubectl logs <pod> → OBSERVE: "DB connection refused"
+3. REASON: check the DB    → ACT: kubectl get svc db → OBSERVE: service missing
+Conclusion: the db Service was deleted; recreate it.`} language="text" />
+    The agent narrowed a vague symptom to a concrete cause by looping — exactly how a good engineer debugs.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the key difference between an AI agent and a chatbot?"
+  options={[
+    "An agent is faster",
+    "An agent takes a goal and uses tools to act over multiple steps, while a chatbot just answers",
+    "A chatbot can use tools; an agent cannot",
+    "There is no difference"
+  ]}
+  answer={1}
+  explanation="An agent pursues a goal by looping through reasoning, acting with tools, and observing results — it takes action, whereas a chatbot only produces an answer in a single turn."
+/>
+
+<Quiz
+  question="What are the three phases of the agent loop?"
+  options={[
+    "Build, Test, Deploy",
+    "Reason, Act, Observe",
+    "Plan, Apply, Destroy",
+    "Read, Write, Execute"
+  ]}
+  answer={1}
+  explanation="An agent cycles through Reason (decide the next step), Act (use a tool), and Observe (read the result), repeating until the goal is met."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How could agentic AI help a DevOps team, and what are the risks?">
+  **Benefits:**
+
+  - **Faster incident response** — agents correlate logs and metrics and propose root causes in seconds.
+  - **Reduced toil** — automate repetitive triage, runbook execution, and boilerplate config.
+  - **Knowledge access** — turn scattered docs and dashboards into answers on demand.
+
+  **Risks and mitigations:**
+
+  - **Wrong actions** — enforce least privilege and require human approval for anything destructive.
+  - **Hallucination** — ground the agent in real data via tools; verify before acting.
+  - **Security** — audit every action, and never expose secrets to the model unnecessarily.
+
+  The winning approach keeps a human in the loop for high-risk steps while letting the agent handle the safe, repetitive work.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand LLMs at a high level, how agents differ from chatbots, the reason–act–observe loop, and where agentic AI fits into DevOps. Next, you'll learn to actually communicate with these models through effective prompting.
+
+<NextLesson
+  title="Working with LLMs & Prompting"
+  href="/ultimate-devops-learning-hub/agentic-ai/llms-and-prompting"
+/>

@@ -1,0 +1,178 @@
+---
+title: "Tools & the Model Context Protocol"
+description: "Learn how tools give AI the power to act, and how the Model Context Protocol (MCP) standardises connecting models to real systems."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Tools & the Model Context Protocol"
+  description="What turns a language model into an agent that can actually do things."
+  timeToRead="10 min"
+  icon="🤖"
+  section="Agentic AI"
+  sectionUrl="/agentic-ai/introduction"
+/>
+
+An LLM on its own can only produce text. To *act* — read a file, query an API, restart a service — it needs **tools**. The **Model Context Protocol (MCP)** is an open standard for connecting models to those tools and data sources in a consistent way. Together they turn a chatbot into a capable agent.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what "tools" mean for an AI model
+- Follow how a model decides to call a tool
+- Understand what MCP is and the problem it solves
+- Know the client/server roles in MCP
+
+---
+
+# What Is a Tool?
+
+A **tool** is a function the model is allowed to call. You describe it — its name, what it does, and its inputs — and the model can choose to invoke it during its reasoning.
+
+<CommandBlock command={`{
+  "name": "get_pod_logs",
+  "description": "Fetch recent logs for a Kubernetes pod",
+  "parameters": {
+    "pod_name": "string",
+    "lines": "number"
+  }
+}`} language="json" />
+
+Given this description, the model can decide *when* to call `get_pod_logs`, with what arguments — and then reason over the result.
+
+---
+
+# The Tool-Calling Flow
+
+<CommandBlock command={`1. Model decides: "I need the logs for web-abc"
+2. Model emits:   get_pod_logs(pod_name="web-abc", lines=50)
+3. Your code runs the real function
+4. Result returned to the model
+5. Model reasons over the logs and responds`} language="text" />
+
+The crucial point: the **model doesn't run anything itself**. It *requests* a tool call; your code executes it and returns the result. That boundary is where you enforce security and permissions.
+
+<Warning title="The model requests, you control">
+Never let a model directly execute commands. It should only *ask* to call a defined tool; your code validates the request, applies permissions, runs it, and returns the result. This boundary is your primary safety control.
+</Warning>
+
+---
+
+# The Problem MCP Solves
+
+Before MCP, every AI app connected to every tool in its own custom way. Ten apps × ten tools meant a hundred bespoke integrations — brittle and duplicated.
+
+**MCP** standardises this. Build an MCP **server** for a system once (say, a GitHub server or a Kubernetes server), and *any* MCP-compatible AI app can use it. It's often described as *"USB-C for AI"* — one standard connector.
+
+<CommandBlock command={`Without MCP:  every app ↔ every tool  (N × M custom integrations)
+
+With MCP:     apps ─┐                 ┌─ tools
+                    ├─ MCP standard ──┤
+                    ┘                 └─`} language="text" />
+
+---
+
+# MCP Client and Server
+
+MCP follows a simple client/server model:
+
+| Role | What it is |
+|------|------------|
+| **MCP Server** | Exposes tools, data, and prompts for one system (files, GitHub, a database) |
+| **MCP Client** | The AI application that connects to servers and uses their tools |
+
+An MCP server can offer three things:
+
+- **Tools** — actions the model can call (e.g. `create_issue`).
+- **Resources** — data the model can read (e.g. a file's contents).
+- **Prompts** — reusable prompt templates for common tasks.
+
+<Tip title="Why this matters for DevOps">
+MCP means you can wire an agent to your real toolchain — Git, cloud APIs, monitoring, ticketing — through standard servers, instead of gluing together one-off integrations. That's what makes practical, tool-using DevOps agents feasible.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Define Tools for a DevOps Agent">
+  <div slot="tasks">
+    1. Describe three tools an incident-response agent would need
+    2. For each, write its name, description, and parameters
+    3. Note which tool is read-only and which is destructive (and needs approval)
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`list_pods(namespace)          # read-only
+get_pod_logs(pod, lines)      # read-only
+restart_deployment(name)      # DESTRUCTIVE → require human approval`} language="text" />
+    Marking destructive tools for approval is how you keep an agent useful *and* safe — read freely, but gate anything that changes live state.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="When a model 'calls a tool', what actually happens?"
+  options={[
+    "The model directly executes the command itself",
+    "The model requests the call, and your code validates and runs it, then returns the result",
+    "The tool rewrites the model",
+    "Nothing — tools are just text"
+  ]}
+  answer={1}
+  explanation="The model only requests a tool call with arguments. Your code executes the real function under your control — this boundary is where permissions and safety are enforced."
+/>
+
+<Quiz
+  question="What problem does the Model Context Protocol (MCP) solve?"
+  options={[
+    "It makes models train faster",
+    "It provides a standard way to connect AI applications to tools and data, avoiding custom integrations",
+    "It encrypts all prompts",
+    "It replaces Kubernetes"
+  ]}
+  answer={1}
+  explanation="MCP standardises connecting models to external tools and data. Build an MCP server once, and any MCP-compatible client can use it — like a universal connector for AI."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Explain how an AI agent safely interacts with real systems through tools and MCP.">
+  Several layers work together:
+
+  - **Tools** are explicitly defined functions with names, descriptions, and typed parameters — the only actions the model may request.
+  - **The request/execute boundary** means the model *asks* to call a tool; your code validates the request, applies permissions, executes it, and returns the result. The model never runs anything directly.
+  - **MCP** standardises this so tools and data sources (Git, cloud, monitoring) are exposed by reusable servers that any compatible agent can use.
+  - **Guardrails** — read-only tools run freely; destructive tools require human approval; every call is logged and audited.
+
+  This design gives an agent real capability while keeping a human firmly in control of anything risky.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand how tools give a model the power to act, the request/execute safety boundary, and how MCP standardises connecting AI to real systems. Next, we bring it all together with practical, safe uses of agentic AI across DevOps.
+
+<NextLesson
+  title="Agentic AI in DevOps Practice"
+  href="/ultimate-devops-learning-hub/agentic-ai/ai-in-devops"
+/>

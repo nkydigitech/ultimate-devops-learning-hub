@@ -3,7 +3,20 @@ import { withBase } from "./url";
 
 /** Any lesson section collection. */
 type LessonEntry = CollectionEntry<
-  "linux" | "github" | "aws" | "azure" | "python" | "ansible"
+  | "linux"
+  | "github"
+  | "aws"
+  | "azure"
+  | "python"
+  | "ansible"
+  | "networking"
+  | "github-actions"
+  | "docker"
+  | "kubernetes"
+  | "terraform"
+  | "jenkins"
+  | "agentic-ai"
+  | "devsecops"
 >;
 
 export interface LessonNavLink {

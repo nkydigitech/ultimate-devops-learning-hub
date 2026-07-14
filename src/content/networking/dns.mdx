@@ -1,0 +1,186 @@
+---
+title: "DNS — How Names Become Addresses"
+description: "Understand how DNS turns human-friendly names like example.com into IP addresses, and the record types every DevOps engineer should know."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="DNS — How Names Become Addresses"
+  description="The internet's phone book, and why 'it's always DNS' is a running joke in operations."
+  timeToRead="9 min"
+  icon="🌐"
+  section="Networking"
+  sectionUrl="/networking/introduction"
+/>
+
+You type `github.com`, not `140.82.121.3`. **DNS** (the Domain Name System) is the service that translates names people remember into IP addresses machines use. When it misbehaves, half the internet looks broken — hence the DevOps meme, *"It's always DNS."*
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what DNS does and why it exists
+- Follow a DNS lookup from start to finish
+- Know the common DNS record types
+- Understand TTL and DNS caching
+
+---
+
+# Why DNS Exists
+
+IP addresses change, and nobody wants to memorise numbers. DNS gives us a stable, human-friendly name that *points* to whatever IP is current. Change servers? Update the DNS record — the name stays the same.
+
+<Tip title="The one-line version">
+DNS is the internet's phone book: you look up a **name** and get back an **address**.
+</Tip>
+
+---
+
+# How a Lookup Works
+
+When you request `www.example.com`, your computer asks a chain of servers until it gets an answer:
+
+<CommandBlock command={`You → Resolver → Root server → .com server → example.com server → IP!`} language="text" />
+
+1. **Resolver** (usually your ISP or a public one like 8.8.8.8) receives the query.
+2. It asks a **root** server: "who handles `.com`?"
+3. The **.com** server replies: "ask example.com's nameserver."
+4. The **authoritative** nameserver returns the actual IP.
+5. The resolver caches the answer and hands it back to you.
+
+All of this usually happens in a few milliseconds.
+
+---
+
+# Common Record Types
+
+| Record | Purpose | Example |
+|--------|---------|---------|
+| **A** | Name → IPv4 address | `example.com → 93.184.216.34` |
+| **AAAA** | Name → IPv6 address | `example.com → 2606:2800:...` |
+| **CNAME** | Alias one name to another | `www → example.com` |
+| **MX** | Where email is delivered | `mail.example.com` |
+| **TXT** | Free-form text (SPF, verification) | `"v=spf1 ..."` |
+| **NS** | Which nameservers are authoritative | `ns1.example.com` |
+
+<Warning title="CNAME gotcha">
+A `CNAME` can't sit at the root of a domain (`example.com` itself) alongside other records. That's a classic real-world mistake — use an `A` record or your provider's "ALIAS/ANAME" instead.
+</Warning>
+
+---
+
+# TTL and Caching
+
+Every DNS record carries a **TTL** (Time To Live) — how many seconds resolvers may cache the answer before asking again.
+
+- **High TTL** (e.g. 86400 = 1 day): fewer lookups, but changes take longer to spread.
+- **Low TTL** (e.g. 60): changes propagate fast, at the cost of more queries.
+
+<Tip title="Planning a migration">
+Before moving a service to a new IP, **lower the TTL** a day in advance. Then when you switch, the change propagates in minutes instead of hours.
+</Tip>
+
+---
+
+# See It Yourself
+
+Use `dig` to inspect DNS directly:
+
+<CommandBlock command={`dig github.com            # full lookup
+dig github.com +short     # just the answer
+dig MX gmail.com +short   # mail servers`} />
+
+<Terminal
+  command="dig github.com +short"
+  output={`140.82.121.3`}
+/>
+
+<Terminal
+  command="dig MX google.com +short"
+  output={`10 smtp.google.com.`}
+/>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Investigate a Domain's DNS">
+  <div slot="tasks">
+    1. Find the A record (IPv4) for a website you use
+    2. Look up its MX records to see where its email goes
+    3. Check the TTL on the A record
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="dig example.com A +noall +answer"
+      output={`example.com.  3600  IN  A  93.184.216.34`}
+    />
+    The `3600` is the TTL in seconds — resolvers cache this answer for one hour.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What does an A record do?"
+  options={[
+    "Maps a name to an IPv4 address",
+    "Sends email",
+    "Encrypts traffic",
+    "Blocks malicious IPs"
+  ]}
+  answer={0}
+  explanation="An A record maps a domain name to an IPv4 address. AAAA does the same for IPv6, MX handles mail, and CNAME creates an alias."
+/>
+
+<Quiz
+  question="You need a DNS change to take effect quickly during a migration. What should you do beforehand?"
+  options={[
+    "Raise the TTL to a very high value",
+    "Lower the TTL well before the change",
+    "Delete all records first",
+    "Nothing — DNS is always instant"
+  ]}
+  answer={1}
+  explanation="Lowering the TTL in advance means resolvers cache the old answer for less time, so your change propagates quickly when you make it."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why do people joke that 'it's always DNS'?">
+  DNS problems are common and their symptoms are misleading:
+
+  - A stale cached record can send users to an old, dead server long after you "fixed" things.
+  - A missing or wrong record makes a perfectly healthy service completely unreachable.
+  - TTLs mean changes don't take effect everywhere at the same time, so it "works for me" but not for others.
+
+  Because DNS sits at the very start of nearly every connection, a small DNS mistake looks like a total outage — which is why experienced engineers check DNS early when debugging.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand how DNS resolves names to addresses, the key record types (A, AAAA, CNAME, MX, TXT, NS), and how TTL controls caching and propagation. Next, we'll look at HTTP — the protocol your apps actually speak — and how load balancers spread traffic across servers.
+
+<NextLesson
+  title="HTTP & Load Balancing"
+  href="/ultimate-devops-learning-hub/networking/http-and-load-balancing"
+/>

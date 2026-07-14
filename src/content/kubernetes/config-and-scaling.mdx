@@ -1,0 +1,210 @@
+---
+title: "Config, Secrets & Scaling"
+description: "Separate configuration from code with ConfigMaps and Secrets, keep Pods healthy with probes, and scale automatically with the HPA."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Config, Secrets & Scaling"
+  description="The production essentials: configuration, health checks, and automatic scaling."
+  timeToRead="11 min"
+  icon="☸️"
+  section="Kubernetes"
+  sectionUrl="/kubernetes/introduction"
+/>
+
+Your app needs configuration (URLs, feature flags) and secrets (passwords, API keys) — and it should never bake these into the image. It also needs to stay healthy and scale with demand. This lesson covers the production essentials that make a Deployment truly robust.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Store configuration in ConfigMaps and secrets in Secrets
+- Inject them into Pods as environment variables or files
+- Add liveness and readiness probes
+- Autoscale a Deployment with the Horizontal Pod Autoscaler
+
+---
+
+# ConfigMaps — Configuration Outside the Image
+
+A **ConfigMap** holds non-sensitive configuration as key-value pairs:
+
+<CommandBlock command={`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  LOG_LEVEL: "info"
+  FEATURE_NEW_UI: "true"`} language="yaml" />
+
+Inject it into a Pod as environment variables:
+
+<CommandBlock command={`spec:
+  containers:
+    - name: app
+      image: myapp:1.0
+      envFrom:
+        - configMapRef:
+            name: app-config`} language="yaml" />
+
+<Tip title="Why separate config from code?">
+The same image should run in dev, staging, and production — only the config changes. Keeping config out of the image means one build promotes cleanly through every environment.
+</Tip>
+
+---
+
+# Secrets — Sensitive Values
+
+A **Secret** works like a ConfigMap but is meant for sensitive data (passwords, tokens, keys):
+
+<CommandBlock command={`kubectl create secret generic db-secret \\
+  --from-literal=DB_PASSWORD='s3cr3t'`} />
+
+<Warning title="Secrets are base64, not encrypted by default">
+Kubernetes Secrets are only base64-encoded in etcd, not truly encrypted out of the box. For real security, enable **encryption at rest** for etcd and restrict access with RBAC, or use an external secrets manager (Vault, cloud KMS).
+</Warning>
+
+Inject a Secret the same way you inject config:
+
+<CommandBlock command={`env:
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-secret
+        key: DB_PASSWORD`} language="yaml" />
+
+---
+
+# Health Probes
+
+Kubernetes needs to know if your app is alive and ready. Two probes tell it:
+
+| Probe | Question it answers | On failure |
+|-------|---------------------|------------|
+| **livenessProbe** | Is the app still alive? | Restart the container |
+| **readinessProbe** | Is the app ready for traffic? | Remove it from the Service until ready |
+
+<CommandBlock command={`livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 3000
+  periodSeconds: 5`} language="yaml" />
+
+<Tip title="Readiness enables zero-downtime deploys">
+During a rolling update, traffic is only sent to Pods that pass their readiness probe. A new Pod that's still starting up won't receive requests until it's genuinely ready.
+</Tip>
+
+---
+
+# Autoscaling with the HPA
+
+The **Horizontal Pod Autoscaler** adds or removes Pods automatically based on metrics like CPU usage:
+
+<CommandBlock command={`kubectl autoscale deployment web \\
+  --cpu-percent=70 --min=2 --max=10`} />
+
+<Terminal
+  command="kubectl get hpa"
+  output={`NAME   REFERENCE        TARGETS   MINPODS   MAXPODS   REPLICAS
+web    Deployment/web   45%/70%   2         10        3`}
+/>
+
+When average CPU crosses 70%, the HPA scales up toward 10 Pods; when load drops, it scales back down toward 2. This requires resource **requests** to be set on the containers so the HPA has a baseline to measure against.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Configure, Secure, and Autoscale">
+  <div slot="tasks">
+    1. Create a ConfigMap with a `LOG_LEVEL` and inject it into your Deployment
+    2. Create a Secret for a database password and mount it as an env var
+    3. Add an HPA that scales between 2 and 8 Pods at 70% CPU
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="kubectl create configmap app-config --from-literal=LOG_LEVEL=debug && kubectl autoscale deployment web --cpu-percent=70 --min=2 --max=8 && kubectl get hpa web"
+      output={`configmap/app-config created
+horizontalpodautoscaler.autoscaling/web autoscaled
+NAME   REFERENCE        TARGETS       MINPODS   MAXPODS   REPLICAS
+web    Deployment/web   <unknown>/70%  2         8         2`}
+    />
+    Targets show `<unknown>` until metrics-server reports CPU — expected on a fresh HPA.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Where should a database password be stored for a Pod?"
+  options={[
+    "Baked into the Docker image",
+    "In a ConfigMap",
+    "In a Secret, injected as an env var or file",
+    "Hard-coded in the source"
+  ]}
+  answer={2}
+  explanation="Sensitive values belong in a Secret (ideally with encryption at rest and RBAC), never baked into the image or committed in code. ConfigMaps are for non-sensitive config."
+/>
+
+<Quiz
+  question="What does a readiness probe control?"
+  options={[
+    "Whether the container is restarted",
+    "Whether the Pod receives traffic from its Service",
+    "How much CPU the Pod uses",
+    "The image version"
+  ]}
+  answer={1}
+  explanation="A readiness probe determines whether a Pod is ready to serve traffic. If it fails, the Pod is removed from the Service endpoints until it passes — the liveness probe is the one that triggers restarts."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How would you make a Kubernetes app production-ready?">
+  Layer on the essentials beyond just a running Deployment:
+
+  - **Config & secrets** externalised into ConfigMaps and Secrets (secrets encrypted at rest).
+  - **Resource requests and limits** so the scheduler places Pods well and the HPA can scale.
+  - **Liveness and readiness probes** for self-healing and zero-downtime rollouts.
+  - **Horizontal Pod Autoscaler** to handle variable load automatically.
+  - **Multiple replicas across nodes** for high availability.
+  - **RBAC and network policies** to lock down access.
+
+  These turn "it runs" into "it runs reliably under real production conditions."
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed the Kubernetes track: architecture, Pods and Deployments, Services and Ingress, and now config, secrets, probes, and autoscaling. You can deploy and operate a resilient app on a cluster. Next, we provision the infrastructure itself as code with Terraform.
+
+<NextLesson
+  title="Introduction to Terraform"
+  href="/ultimate-devops-learning-hub/terraform/introduction"
+/>

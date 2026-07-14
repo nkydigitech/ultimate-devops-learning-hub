@@ -1,0 +1,208 @@
+---
+title: "Pods & Deployments"
+description: "Run your first app on Kubernetes with Pods, then use Deployments to get replicas, self-healing, and rolling updates."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Pods & Deployments"
+  description="From a single Pod to a self-healing, scalable Deployment."
+  timeToRead="11 min"
+  icon="☸️"
+  section="Kubernetes"
+  sectionUrl="/kubernetes/introduction"
+/>
+
+You almost never create a bare Pod in production. Instead you create a **Deployment**, which manages a set of identical Pods for you — keeping the right number running, replacing failed ones, and rolling out new versions safely.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Write and apply a Pod manifest
+- Understand why Deployments are preferred over bare Pods
+- Scale an app up and down
+- Perform a rolling update and a rollback
+
+---
+
+# A Pod Manifest
+
+Kubernetes objects are described in YAML. Here's the simplest Pod:
+
+<CommandBlock command={`apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.27
+      ports:
+        - containerPort: 80`} language="yaml" />
+
+Apply it with `kubectl apply -f pod.yaml`. But there's a problem: if this Pod's node dies, the Pod is gone forever. Nothing recreates it.
+
+<Warning title="Don't run bare Pods in production">
+A standalone Pod has no self-healing. If it dies, it stays dead. Always use a controller like a Deployment, which recreates Pods to maintain your desired count.
+</Warning>
+
+---
+
+# The Deployment
+
+A **Deployment** wraps your Pods and guarantees a desired number of replicas:
+
+<CommandBlock command={`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 3                 # keep 3 Pods running at all times
+  selector:
+    matchLabels:
+      app: web
+  template:                   # the Pod blueprint
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27
+          ports:
+            - containerPort: 80`} language="yaml" />
+
+Apply it and Kubernetes creates three Pods. Kill one, and a replacement appears within seconds.
+
+<Terminal
+  command="kubectl apply -f deployment.yaml && kubectl get pods"
+  output={`deployment.apps/web created
+NAME                   READY   STATUS    RESTARTS   AGE
+web-6d4cf56db6-2xk9p   1/1     Running   0          8s
+web-6d4cf56db6-7ptlm   1/1     Running   0          8s
+web-6d4cf56db6-q8w4z   1/1     Running   0          8s`}
+/>
+
+---
+
+# Scaling
+
+Change the replica count anytime — declaratively or with a quick command:
+
+<CommandBlock command={`kubectl scale deployment web --replicas=5   # scale up
+kubectl get pods                            # now 5 pods
+kubectl scale deployment web --replicas=2   # scale down`} />
+
+<Tip title="Prefer editing the YAML">
+`kubectl scale` is handy for a quick change, but in real GitOps workflows you edit the `replicas` value in the manifest and commit it. The manifest in Git stays the single source of truth.
+</Tip>
+
+---
+
+# Rolling Updates & Rollbacks
+
+When you change the image version, the Deployment rolls it out gradually — replacing Pods a few at a time so the app never goes fully down:
+
+<CommandBlock command={`kubectl set image deployment/web nginx=nginx:1.28   # trigger rollout
+kubectl rollout status deployment/web               # watch it
+kubectl rollout undo deployment/web                 # roll back if broken`} />
+
+<Terminal
+  command="kubectl rollout status deployment/web"
+  output={`Waiting for rollout to finish: 2 out of 3 new replicas updated...
+Waiting for rollout to finish: 1 old replica pending termination...
+deployment "web" successfully rolled out`}
+/>
+
+If the new version is broken, `kubectl rollout undo` instantly returns to the previous working version.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Deploy, Scale, and Self-Heal">
+  <div slot="tasks">
+    1. Create a Deployment of nginx with 3 replicas
+    2. Delete one Pod and watch Kubernetes recreate it
+    3. Scale to 5 replicas, then update the image and roll it out
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="kubectl delete pod web-6d4cf56db6-2xk9p && kubectl get pods"
+      output={`pod "web-6d4cf56db6-2xk9p" deleted
+NAME                   READY   STATUS              AGE
+web-6d4cf56db6-7ptlm   1/1     Running             3m
+web-6d4cf56db6-q8w4z   1/1     Running             3m
+web-6d4cf56db6-n5r2t   0/1     ContainerCreating   2s`}
+    />
+    A brand-new Pod (`n5r2t`) is already being created to maintain the desired count of 3 — self-healing in action.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why is a Deployment preferred over creating a bare Pod?"
+  options={[
+    "Deployments are smaller",
+    "A Deployment maintains the desired number of replicas and self-heals, while a bare Pod does not",
+    "Bare Pods can't run containers",
+    "There is no difference"
+  ]}
+  answer={1}
+  explanation="A Deployment continuously ensures the desired replica count, recreating failed Pods and enabling rolling updates. A standalone Pod has none of this."
+/>
+
+<Quiz
+  question="A new version you rolled out is broken. What's the fastest safe recovery?"
+  options={[
+    "Delete the whole cluster",
+    "kubectl rollout undo deployment/web",
+    "Manually edit every Pod",
+    "Wait and hope it fixes itself"
+  ]}
+  answer={1}
+  explanation="kubectl rollout undo reverts the Deployment to the previous working revision, quickly restoring service."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How does Kubernetes achieve zero-downtime deployments?">
+  Through rolling updates managed by the Deployment controller:
+
+  - New Pods with the updated image are created **before** old ones are removed.
+  - Traffic only reaches Pods that pass their **readiness checks**.
+  - Old Pods are terminated gradually, a few at a time (`maxSurge` / `maxUnavailable` control the pace).
+  - If the rollout stalls or fails health checks, it can be paused or rolled back automatically.
+
+  Combined with readiness probes and a load-balancing Service, users keep getting served throughout the update.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now run apps with Pods, use Deployments for replicas and self-healing, scale on demand, and roll out or roll back versions safely. But how does traffic reach these ever-changing Pods? That's the job of Services — up next.
+
+<NextLesson
+  title="Services & Networking"
+  href="/ultimate-devops-learning-hub/kubernetes/services-and-networking"
+/>

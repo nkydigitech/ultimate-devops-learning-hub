@@ -1,0 +1,217 @@
+---
+title: "Container Security"
+description: "Secure your containers end to end: minimal images, non-root users, image scanning, and hardened Kubernetes runtime settings."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Container Security"
+  description="Harden what you ship — from the base image to the running Pod."
+  timeToRead="11 min"
+  icon="🔒"
+  section="DevSecOps"
+  sectionUrl="/devsecops/introduction"
+/>
+
+Containers are how modern software ships, so securing them is essential. Container security spans the whole lifecycle: the **image** you build, the **scan** before you ship, and the **runtime** settings that constrain a container in production. This lesson ties DevSecOps back to the Docker and Kubernetes skills you already have.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Build minimal, hardened container images
+- Run containers as a non-root user
+- Scan images for vulnerabilities in CI
+- Apply Kubernetes security context and policies
+
+---
+
+# Start with a Minimal Image
+
+The smaller the image, the smaller the attack surface. Every extra package is a potential vulnerability.
+
+| Choice | Attack surface |
+|--------|----------------|
+| Full OS image (e.g. `ubuntu`) | Large — many packages, shells, tools |
+| Slim image (e.g. `-slim`) | Smaller |
+| Alpine (e.g. `node:20-alpine`) | Small |
+| Distroless / scratch | Minimal — no shell, no package manager |
+
+<Tip title="No shell, no shell exploits">
+Distroless images contain only your app and its runtime — no shell, no package manager. An attacker who breaks in finds almost nothing to work with. It's one of the highest-value hardening steps.
+</Tip>
+
+---
+
+# Never Run as Root
+
+By default containers run as root. If an attacker escapes the app, root inside the container is a dangerous starting point. Drop to a non-root user:
+
+<CommandBlock command={`FROM node:20-slim
+
+# Create and switch to a non-root user
+RUN useradd --system --uid 1001 appuser
+WORKDIR /app
+COPY --chown=appuser:appuser . .
+RUN npm ci --production
+
+USER appuser              # everything below runs as appuser
+EXPOSE 3000
+CMD ["node", "server.js"]`} language="dockerfile" />
+
+<Warning title="Root in a container is root-adjacent on the host">
+A container running as root that suffers a breakout has a far easier path to compromising the host. Running as an unprivileged user is one of the single most effective container hardening measures.
+</Warning>
+
+---
+
+# Scan Images in CI
+
+Base images and dependencies accumulate known vulnerabilities over time. Scan every image before it ships:
+
+<CommandBlock command={`# Fail the build on high/critical image vulnerabilities
+trivy image --exit-code 1 --severity HIGH,CRITICAL myapp:1.0`} language="bash" />
+
+<Terminal
+  command="trivy image --severity HIGH,CRITICAL myapp:1.0"
+  output={`myapp:1.0 (debian 12)
+Total: 3 (HIGH: 2, CRITICAL: 1)
+
+The base image is outdated. Rebuild on a patched base
+(node:20-slim latest) to clear these findings.`}
+/>
+
+<Tip title="Rebuild regularly">
+Even if your code doesn't change, rebuild images periodically to pick up patched base layers. An image built six months ago likely carries vulnerabilities fixed since.
+</Tip>
+
+---
+
+# Harden the Runtime in Kubernetes
+
+Securing the image isn't enough — constrain the container at runtime too, using a **securityContext**:
+
+<CommandBlock command={`spec:
+  containers:
+    - name: app
+      image: myapp:1.0
+      securityContext:
+        runAsNonRoot: true          # refuse to run as root
+        runAsUser: 1001
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true # filesystem is immutable
+        capabilities:
+          drop: ["ALL"]             # drop all Linux capabilities`} language="yaml" />
+
+Each setting shrinks what a compromised container can do:
+
+- `runAsNonRoot` / `runAsUser` — no root.
+- `allowPrivilegeEscalation: false` — can't gain more privileges.
+- `readOnlyRootFilesystem` — attacker can't write malware to disk.
+- `drop: ["ALL"]` — remove Linux capabilities the app doesn't need.
+
+<Tip title="Enforce cluster-wide">
+Use Pod Security Standards or a policy engine (like Kyverno or OPA Gatekeeper) to *enforce* these settings across the whole cluster, so no one can deploy an unhardened container by accident.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Harden a Container End to End">
+  <div slot="tasks">
+    1. Rewrite a Dockerfile to use a slim base and a non-root user
+    2. Add a CI step that scans the image and fails on HIGH/CRITICAL
+    3. Write a Kubernetes securityContext that enforces non-root and a read-only filesystem
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`# Dockerfile
+FROM node:20-slim
+RUN useradd --system --uid 1001 appuser
+WORKDIR /app
+COPY --chown=appuser:appuser . .
+RUN npm ci --production
+USER appuser
+CMD ["node", "server.js"]`} language="dockerfile" />
+    <CommandBlock command={`# CI
+- run: trivy image --exit-code 1 --severity HIGH,CRITICAL myapp:1.0
+# securityContext
+securityContext:
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities: { drop: ["ALL"] }`} language="yaml" />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why is running a container as a non-root user an important security measure?"
+  options={[
+    "It makes the image smaller",
+    "If an attacker escapes the app, they don't start with root privileges, limiting the damage",
+    "It speeds up the container",
+    "Root is required for networking"
+  ]}
+  answer={1}
+  explanation="Running as non-root limits what an attacker can do after a breach and makes a container breakout to host root much harder — one of the most effective hardening steps."
+/>
+
+<Quiz
+  question="What does readOnlyRootFilesystem: true achieve in a Kubernetes securityContext?"
+  options={[
+    "Makes the container start faster",
+    "Prevents the container from writing to its filesystem, so an attacker can't drop malware onto disk",
+    "Encrypts the container",
+    "Disables networking"
+  ]}
+  answer={1}
+  explanation="A read-only root filesystem stops writes to the container's disk, blocking a common attacker step of writing malicious files. Apps needing scratch space use a mounted writable volume."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How do you secure containers across their lifecycle?">
+  Defence in depth, from build to runtime:
+
+  - **Minimal base images** — slim, alpine, or distroless to shrink the attack surface.
+  - **Non-root user** — never run the app as root inside the container.
+  - **Image scanning in CI** — fail builds on high/critical vulnerabilities; rebuild regularly for patched bases.
+  - **No secrets in images** — inject them at runtime from a secrets manager.
+  - **Runtime hardening** — Kubernetes `securityContext`: non-root, no privilege escalation, read-only filesystem, drop all capabilities.
+  - **Policy enforcement** — Pod Security Standards or Kyverno/OPA to enforce these cluster-wide.
+  - **Runtime monitoring** — detect anomalous container behaviour in production.
+
+  The principle mirrors all of DevSecOps: minimise attack surface, apply least privilege, automate the checks, and assume breach — so each layer limits the damage of the one before failing.
+</InterviewPrep>
+
+---
+
+# 🎓 Course Complete
+
+Congratulations — you've worked through the full DevOps journey: **Networking, Docker, Kubernetes, Terraform, GitHub Actions, Jenkins, Agentic AI, and DevSecOps**, on top of the Linux, Git, and cloud foundations. You now have the vocabulary, the hands-on patterns, and the interview answers of a production-ready DevOps engineer.
+
+The best next step is to *build*: combine these skills into a real project — containerise an app, provision its infrastructure with Terraform, ship it through a secure CI/CD pipeline onto Kubernetes, and monitor it. That's where everything clicks together.
+
+<NextLesson
+  title="Back to the Roadmap — pick your next skill"
+  href="/ultimate-devops-learning-hub/"
+/>

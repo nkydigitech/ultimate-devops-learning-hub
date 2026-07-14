@@ -1,0 +1,190 @@
+---
+title: "Introduction to Jenkins"
+description: "Understand what Jenkins is, how its controller/agent architecture works, and why it remains a CI/CD workhorse in the enterprise."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Jenkins"
+  description="The original CI/CD automation server — still everywhere in the enterprise."
+  timeToRead="9 min"
+  icon="👷"
+  section="Jenkins"
+  sectionUrl="/jenkins/introduction"
+/>
+
+Before GitHub Actions and GitLab CI, there was **Jenkins** — the open-source automation server that popularised continuous integration. It's self-hosted, endlessly extensible, and still runs the pipelines of a huge number of companies. Knowing Jenkins is a genuine advantage in the job market.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what Jenkins is and what it automates
+- Know the controller/agent architecture
+- Understand plugins and why they matter
+- Compare Jenkins with cloud-native CI like GitHub Actions
+
+---
+
+# What is Jenkins?
+
+Jenkins is a **self-hosted automation server**. You install it on your own infrastructure, and it runs jobs and pipelines: building code, running tests, deploying releases — triggered by code changes, schedules, or manual clicks.
+
+<Tip title="The one-line version">
+Jenkins is a server you run yourself that automates the build-test-deploy cycle. Its superpower is flexibility — thousands of plugins let it integrate with almost anything.
+</Tip>
+
+---
+
+# Controller / Agent Architecture
+
+Jenkins scales by separating the brain from the muscle:
+
+<CommandBlock command={`          ┌─────────── Controller ───────────┐
+          │  schedules jobs, stores config,   │
+          │  serves the web UI                │
+          └──────────────┬────────────────────┘
+                         │ dispatches work
+          ┌──────────────┼──────────────┐
+        Agent 1        Agent 2        Agent 3
+     (runs builds)  (runs builds)  (runs builds)`} language="text" />
+
+| Component | Role |
+|-----------|------|
+| **Controller** (master) | Orchestrates jobs, stores configuration, serves the UI. Shouldn't run heavy builds itself. |
+| **Agent** (node) | Executes the actual build work, on separate machines. |
+
+This lets you run many builds in parallel across many machines, and use agents with different environments (Linux, Windows, GPU, etc.).
+
+---
+
+# Plugins — Jenkins' Superpower (and Caveat)
+
+Jenkins itself is a small core; nearly all capability comes from **plugins** — over 1,800 of them. Git integration, Docker, Kubernetes, cloud deploys, notifications: all plugins.
+
+<Warning title="Plugins are power and risk">
+Plugins make Jenkins do almost anything, but they're also its biggest maintenance burden: version conflicts, security updates, and occasional breakage. Keep plugins minimal and updated — treat them as dependencies you must maintain.
+</Warning>
+
+---
+
+# Jenkins vs Cloud-Native CI
+
+| | **Jenkins** | **GitHub Actions** |
+|---|-------------|--------------------|
+| Hosting | You host and maintain it | Fully managed by GitHub |
+| Setup | More involved | Minimal — it's built in |
+| Flexibility | Extreme (plugins, any environment) | High, within GitHub's model |
+| Cost | Your infrastructure | Included / usage-based |
+| Best for | Complex, on-prem, highly customised needs | Projects already on GitHub |
+
+<Tip title="Why learn both?">
+Cloud CI is simpler for new projects, but Jenkins runs deeply entrenched enterprise pipelines and works anywhere — including air-gapped, on-prem environments. Many DevOps roles still list Jenkins as a requirement.
+</Tip>
+
+---
+
+# See It Yourself
+
+The quickest way to try Jenkins is with Docker:
+
+<CommandBlock command={`docker run -d --name jenkins \\
+  -p 8080:8080 -p 50000:50000 \\
+  -v jenkins_home:/var/jenkins_home \\
+  jenkins/jenkins:lts`} />
+
+<Terminal
+  command="docker logs jenkins | grep -A2 'initial'"
+  output={`Jenkins initial setup is required. An admin user has been created.
+Please use the following password to proceed to installation:
+
+2f8a1c9b4e3d4a1f9c2b7e6d5a4f3c2b`}
+/>
+
+Open `http://localhost:8080`, paste that initial password, and you're in — the volume keeps your setup across restarts.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Run Jenkins Locally">
+  <div slot="tasks">
+    1. Start the official Jenkins LTS container with a persistent volume
+    2. Retrieve the initial admin password from the logs
+    3. Explain why the controller shouldn't run heavy builds itself
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword"
+      output={`2f8a1c9b4e3d4a1f9c2b7e6d5a4f3c2b`}
+    />
+    The controller orchestrates and stores config; running heavy builds on it would slow the UI and create a single point of failure. Builds belong on agents.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="In Jenkins' architecture, what is the role of an agent?"
+  options={[
+    "It serves the web UI and stores configuration",
+    "It executes the actual build work, offloaded from the controller",
+    "It replaces the need for a controller",
+    "It only stores plugins"
+  ]}
+  answer={1}
+  explanation="Agents (nodes) run the build workloads. The controller orchestrates jobs and serves the UI but should not run heavy builds itself."
+/>
+
+<Quiz
+  question="Where does most of Jenkins' functionality come from?"
+  options={[
+    "A large built-in core",
+    "Its extensive plugin ecosystem",
+    "The operating system",
+    "GitHub"
+  ]}
+  answer={1}
+  explanation="Jenkins has a small core; the vast majority of its capabilities — Git, Docker, cloud deploys, notifications — come from its 1,800+ plugins."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="When would you choose Jenkins over a cloud-native CI tool?">
+  Jenkins shines in specific situations:
+
+  - **On-premise / air-gapped** environments where cloud CI can't reach the infrastructure.
+  - **Highly customised pipelines** needing niche integrations available as plugins.
+  - **Existing investment** — many enterprises already run large, mature Jenkins setups.
+  - **Full control** over the build environment, agents, and data residency.
+
+  Cloud-native CI (GitHub Actions, GitLab CI) is usually simpler for greenfield projects and removes maintenance overhead. The trade-off is Jenkins' flexibility and control versus the operational cost of hosting and maintaining it yourself.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand what Jenkins is, its controller/agent architecture, the central role of plugins, and how it compares to cloud CI. Next, you'll set it up and create your first job.
+
+<NextLesson
+  title="Setup & Your First Job"
+  href="/ultimate-devops-learning-hub/jenkins/setup-and-jobs"
+/>

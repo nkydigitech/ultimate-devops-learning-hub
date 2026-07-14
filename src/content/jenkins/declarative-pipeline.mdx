@@ -1,0 +1,242 @@
+---
+title: "Pipelines as Code"
+description: "Define your build as a versioned Jenkinsfile using declarative pipeline syntax — stages, steps, agents, and post actions."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Pipelines as Code"
+  description="A Jenkinsfile turns your build into versioned, reviewable code."
+  timeToRead="11 min"
+  icon="👷"
+  section="Jenkins"
+  sectionUrl="/jenkins/introduction"
+/>
+
+Freestyle jobs live in the UI, invisible to version control. The modern way is **pipeline as code**: a `Jenkinsfile` committed alongside your source. Now your build process is versioned, reviewed in pull requests, and reproducible — just like your application.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand declarative pipeline structure
+- Write a `Jenkinsfile` with stages and steps
+- Use `post` actions for success/failure handling
+- Know where credentials and environment variables fit
+
+---
+
+# The Declarative Pipeline
+
+Jenkins has two pipeline syntaxes: **declarative** (structured, recommended) and **scripted** (full Groovy, advanced). We'll use declarative — it's cleaner and covers the vast majority of needs.
+
+The skeleton:
+
+<CommandBlock command={`pipeline {
+  agent any                 // where to run
+
+  stages {
+    stage('Build') {
+      steps {
+        echo 'Building...'
+      }
+    }
+  }
+}`} language="groovy" />
+
+Every declarative pipeline has an `agent` (where it runs) and `stages` (the ordered phases of work).
+
+---
+
+# A Real Jenkinsfile
+
+Here's a complete build-test pipeline:
+
+<CommandBlock command={`pipeline {
+  agent any
+
+  environment {
+    CI = 'true'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+    stage('Install') {
+      steps {
+        sh 'npm ci'
+      }
+    }
+    stage('Test') {
+      steps {
+        sh 'npm test'
+      }
+    }
+    stage('Build') {
+      steps {
+        sh 'npm run build'
+      }
+    }
+  }
+
+  post {
+    success { echo 'Pipeline succeeded ✅' }
+    failure { echo 'Pipeline failed ❌' }
+    always  { echo 'Cleaning up...' }
+  }
+}`} language="groovy" />
+
+<Terminal
+  command="# Stage View in Jenkins:"
+  output={`Checkout   ✓  3s
+Install    ✓  12s
+Test       ✓  19s
+Build      ✓  8s
+Pipeline succeeded ✅`}
+/>
+
+Jenkins visualises each **stage** as a column, so you instantly see where a build passed or failed.
+
+---
+
+# Post Actions
+
+The `post` block runs *after* the stages, based on the outcome:
+
+| Condition | Runs when |
+|-----------|-----------|
+| `success` | The pipeline succeeded |
+| `failure` | The pipeline failed |
+| `unstable` | Tests passed but flagged issues |
+| `always` | Regardless of outcome (cleanup, notifications) |
+
+<Tip title="Use post for notifications">
+`post { failure { ... } }` is the natural place to send a Slack/email alert when a build breaks, and `always` is where you clean up workspaces or archive logs.
+</Tip>
+
+---
+
+# Credentials in a Pipeline
+
+Never hard-code secrets. Store them in Jenkins' **Credentials** store and inject them safely:
+
+<CommandBlock command={`environment {
+  AWS_TOKEN = credentials('aws-deploy-token')
+}
+stages {
+  stage('Deploy') {
+    steps {
+      sh './deploy.sh'   // AWS_TOKEN is available, masked in logs
+    }
+  }
+}`} language="groovy" />
+
+<Warning title="Credentials are masked, not invisible">
+The `credentials()` helper masks the value in logs, but you must still avoid printing or exporting it carelessly. Reference it only where needed, and prefer scoped credentials over global ones.
+</Warning>
+
+---
+
+# Multibranch Pipelines
+
+Point Jenkins at a repo as a **multibranch pipeline** and it automatically discovers every branch (and pull request) with a `Jenkinsfile`, creating a pipeline for each. Push a new branch → Jenkins builds it, no manual job setup.
+
+<Tip title="Jenkinsfile in the repo = automatic pipelines">
+Because the pipeline definition travels with the code, each branch can even evolve its own build steps. This is the Jenkins equivalent of GitHub Actions discovering workflows in `.github/workflows/`.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Write a Jenkinsfile">
+  <div slot="tasks">
+    1. Create a `Jenkinsfile` with Checkout, Install, Test, and Build stages
+    2. Add a `post` block that reports success and failure
+    3. Explain why committing this to the repo is better than a freestyle job
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`pipeline {
+  agent any
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Install')  { steps { sh 'npm ci' } }
+    stage('Test')     { steps { sh 'npm test' } }
+    stage('Build')    { steps { sh 'npm run build' } }
+  }
+  post {
+    success { echo 'Success' }
+    failure { echo 'Failed' }
+  }
+}`} language="groovy" />
+    Committed to the repo, the pipeline is versioned, reviewable in PRs, and identical for everyone — none of which a UI-only freestyle job offers.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the main benefit of defining a pipeline in a Jenkinsfile committed to the repository?"
+  options={[
+    "It runs without an agent",
+    "The pipeline is versioned, code-reviewed, and reproducible alongside the source",
+    "It disables all plugins",
+    "It removes the need for stages"
+  ]}
+  answer={1}
+  explanation="A Jenkinsfile is pipeline-as-code: versioned in Git, reviewed in pull requests, and reproducible — the same benefits you get from managing infrastructure and app code as code."
+/>
+
+<Quiz
+  question="Which post condition is the right place to send an alert when a build breaks?"
+  options={["success", "always", "failure", "agent"]}
+  answer={2}
+  explanation="The failure post condition runs when the pipeline fails, making it the natural place to send break notifications. always runs regardless of outcome (useful for cleanup)."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Compare declarative and scripted pipelines, and explain stages and steps.">
+  Jenkins offers two pipeline styles:
+
+  - **Declarative** — a structured, opinionated syntax (`pipeline { agent; stages; post }`). Easier to read, validate, and maintain. Recommended for almost everything.
+  - **Scripted** — full Groovy scripting. Maximum flexibility for complex logic, at the cost of complexity.
+
+  Within a pipeline:
+
+  - A **stage** is a logical phase (Build, Test, Deploy) shown as a column in the stage view.
+  - A **step** is a single action inside a stage (`sh 'npm test'`, `checkout scm`).
+
+  I'd default to declarative for clarity, dropping into scripted blocks only when I need advanced control flow.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now write a declarative `Jenkinsfile` with stages, steps, post actions, and credentials — and understand multibranch pipelines. Next, you'll extend this into a full CI/CD pipeline that deploys.
+
+<NextLesson
+  title="A Full CI/CD Pipeline"
+  href="/ultimate-devops-learning-hub/jenkins/ci-cd-pipeline"
+/>

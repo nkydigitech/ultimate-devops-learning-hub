@@ -1,0 +1,207 @@
+---
+title: "Writing a Dockerfile"
+description: "Learn to package your own application into a Docker image with a Dockerfile, and follow best practices for small, fast, secure builds."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Writing a Dockerfile"
+  description="Turn your own application into a portable image, one instruction at a time."
+  timeToRead="11 min"
+  icon="🐳"
+  section="Docker"
+  sectionUrl="/docker/introduction"
+/>
+
+Running other people's images is useful, but the real power is packaging **your own** app. A **Dockerfile** is a plain-text recipe that tells Docker how to build your image, step by step.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand the most common Dockerfile instructions
+- Write a Dockerfile for a real application
+- Build and run your own image
+- Apply best practices for small, cached, secure images
+
+---
+
+# The Core Instructions
+
+| Instruction | What it does |
+|-------------|--------------|
+| `FROM` | The base image to build on |
+| `WORKDIR` | Set the working directory inside the image |
+| `COPY` | Copy files from your project into the image |
+| `RUN` | Execute a command at build time (install deps) |
+| `EXPOSE` | Document which port the app listens on |
+| `CMD` | The command that runs when the container starts |
+
+---
+
+# A Real Dockerfile
+
+Here's a complete Dockerfile for a small Node.js app:
+
+<CommandBlock command={`# 1. Start from an official, slim base image
+FROM node:20-slim
+
+# 2. Set the working directory
+WORKDIR /app
+
+# 3. Copy dependency manifests first (better caching)
+COPY package*.json ./
+
+# 4. Install dependencies
+RUN npm install --production
+
+# 5. Copy the rest of the source code
+COPY . .
+
+# 6. Document the port the app uses
+EXPOSE 3000
+
+# 7. Command to start the app
+CMD ["node", "server.js"]`} language="dockerfile" />
+
+<Tip title="Why copy package.json first?">
+Docker caches each instruction as a layer. By copying `package.json` and installing deps *before* copying your code, Docker only re-runs `npm install` when your dependencies change — not on every code edit. This makes rebuilds dramatically faster.
+</Tip>
+
+---
+
+# Build and Run Your Image
+
+<CommandBlock command={`docker build -t myapp:1.0 .        # build, tag it myapp:1.0
+docker run -d -p 3000:3000 myapp:1.0`} />
+
+<Terminal
+  command="docker build -t myapp:1.0 ."
+  output={`[+] Building 6.2s (10/10) FINISHED
+ => [1/6] FROM docker.io/library/node:20-slim
+ => [2/6] WORKDIR /app
+ => [3/6] COPY package*.json ./
+ => [4/6] RUN npm install --production
+ => [5/6] COPY . .
+ => exporting to image
+ => => naming to docker.io/library/myapp:1.0`}
+/>
+
+The `-t` flag **tags** the image with a name and version, so you can run and share it easily.
+
+---
+
+# Best Practices
+
+<Warning title="Don't run as root">
+By default containers run as root, which is risky. Add a non-root user and switch to it with `USER appuser` before your `CMD`. It's a small change that greatly reduces the blast radius of a compromise.
+</Warning>
+
+A few habits that separate good images from bad:
+
+- **Use slim/alpine base images** — smaller images pull faster and have fewer vulnerabilities.
+- **Add a `.dockerignore`** — keep `node_modules`, `.git`, and secrets out of the build context.
+- **Order layers by change frequency** — least-changing instructions first for maximum cache reuse.
+- **One process per container** — a container should do one job well.
+- **Use multi-stage builds** — compile in a big image, then copy only the artifact into a tiny final image.
+
+<CommandBlock command={`# Multi-stage build: build stage + tiny runtime stage
+FROM node:20 AS build
+WORKDIR /app
+COPY . .
+RUN npm ci && npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html`} language="dockerfile" />
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Containerise a Static Site">
+  <div slot="tasks">
+    1. Create an `index.html` with any content
+    2. Write a Dockerfile based on `nginx:alpine` that copies it into the web root
+    3. Build the image as `mysite:1.0` and run it on port 8080
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`# Dockerfile
+FROM nginx:alpine
+COPY index.html /usr/share/nginx/html/index.html
+EXPOSE 80`} language="dockerfile" />
+    <Terminal
+      command="docker build -t mysite:1.0 . && docker run -d -p 8080:80 mysite:1.0"
+      output={`[+] Building 1.4s FINISHED => naming to docker.io/library/mysite:1.0
+b7c8d9e0f1a2`}
+    />
+    Visit `http://localhost:8080` to see your page served from your own image.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why do experienced engineers copy package.json and install dependencies before copying the rest of the code?"
+  options={[
+    "It's required syntax",
+    "To take advantage of Docker's layer caching so dependencies aren't reinstalled on every code change",
+    "It makes the image larger on purpose",
+    "It has no effect"
+  ]}
+  answer={1}
+  explanation="Docker caches each layer. Installing dependencies before copying source means npm install is only re-run when dependencies change, making rebuilds much faster."
+/>
+
+<Quiz
+  question="What does a multi-stage build achieve?"
+  options={[
+    "It runs the app in two containers",
+    "It builds in a large image but ships only the final artifact in a small image",
+    "It doubles the image size",
+    "It skips the build step"
+  ]}
+  answer={1}
+  explanation="Multi-stage builds compile/build in a full toolchain image, then copy only the finished artifact into a minimal runtime image — keeping the final image small and secure."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How would you reduce the size of a Docker image?">
+  Several proven techniques:
+
+  - **Choose a minimal base** — `alpine` or `-slim` variants instead of full OS images.
+  - **Multi-stage builds** — leave build tools behind, ship only the artifact.
+  - **Combine and clean up `RUN` steps** — remove package caches in the same layer they're created.
+  - **Use `.dockerignore`** — avoid copying unnecessary files into the build context.
+  - **Install only production dependencies** — skip dev/test packages in the final image.
+
+  Smaller images pull faster, deploy quicker, and expose a smaller attack surface.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now write a Dockerfile, build and tag your own image, and apply best practices for small, cached, secure builds. Next, you'll run *multiple* containers together — app plus database — using Docker Compose.
+
+<NextLesson
+  title="Multi-Container Apps with Docker Compose"
+  href="/ultimate-devops-learning-hub/docker/docker-compose"
+/>

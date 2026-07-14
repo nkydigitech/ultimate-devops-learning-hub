@@ -1,0 +1,190 @@
+---
+title: "Images & Containers in Practice"
+description: "Master the everyday Docker commands: run, list, stop, remove, exec, logs, and how to manage images and containers confidently."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Images & Containers in Practice"
+  description="The handful of commands you'll use every single day with Docker."
+  timeToRead="10 min"
+  icon="🐳"
+  section="Docker"
+  sectionUrl="/docker/introduction"
+/>
+
+Now that you understand the concepts, let's build the muscle memory. You only need about ten commands to work confidently with Docker day to day.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Manage the container lifecycle: run, stop, remove
+- Inspect containers with `logs` and `exec`
+- Manage images: list, pull, remove
+- Understand port mapping and volumes at a basic level
+
+---
+
+# The Container Lifecycle
+
+| Command | What it does |
+|---------|--------------|
+| `docker run <image>` | Create and start a container |
+| `docker ps` | List running containers |
+| `docker ps -a` | List all containers (including stopped) |
+| `docker stop <id>` | Gracefully stop a container |
+| `docker rm <id>` | Remove a stopped container |
+
+<CommandBlock command={`docker run -d --name web -p 8080:80 nginx   # start named container
+docker ps                                    # see it running
+docker stop web                              # stop it
+docker rm web                                # remove it`} />
+
+<Tip title="Name your containers">
+`--name web` gives the container a friendly name so you can type `docker stop web` instead of copying a random ID. Small habit, big time-saver.
+</Tip>
+
+---
+
+# Looking Inside a Running Container
+
+Two commands do most of your debugging:
+
+<CommandBlock command={`docker logs web            # view a container's output
+docker logs -f web         # follow logs live
+docker exec -it web bash   # open a shell inside the container`} />
+
+`docker exec -it` drops you into a shell *inside* the container, so you can inspect files, environment variables, and processes as if you were SSH'd into a tiny machine.
+
+<Terminal
+  command="docker exec -it web bash -c 'cat /etc/os-release | head -2'"
+  output={`PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
+NAME="Debian GNU/Linux"`}
+/>
+
+---
+
+# Managing Images
+
+| Command | What it does |
+|---------|--------------|
+| `docker images` | List local images |
+| `docker pull <image>` | Download an image |
+| `docker rmi <image>` | Remove an image |
+| `docker image prune` | Clean up unused images |
+
+<Warning title="Disk fills up fast">
+Images, stopped containers, and unused volumes quietly eat disk space on build servers. `docker system prune -a` clears the lot — powerful, but it deletes anything not currently in use, so use it deliberately.
+</Warning>
+
+---
+
+# Ports and Volumes
+
+Two flags you'll use constantly:
+
+- **Port mapping** (`-p host:container`) exposes a container's port to the host so you can reach the app.
+- **Volumes** (`-v host_path:container_path`) persist data outside the container, so it survives even when the container is removed.
+
+<CommandBlock command={`docker run -d \\
+  -p 5432:5432 \\
+  -e POSTGRES_PASSWORD=secret \\
+  -v pgdata:/var/lib/postgresql/data \\
+  --name db postgres`} />
+
+Here the database's files live in a named volume `pgdata`, so your data isn't lost when the container restarts.
+
+<Tip title="Containers are disposable, data is not">
+Treat containers as throwaway. Anything you need to keep — databases, uploads — belongs in a **volume**, never inside the container's own filesystem.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Run, Inspect and Clean Up">
+  <div slot="tasks">
+    1. Run an Nginx container named `myweb` on port 8080
+    2. View its logs, then open a shell inside it
+    3. Stop and remove it, then confirm it's gone
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="docker run -d --name myweb -p 8080:80 nginx && docker logs myweb | head -1 && docker stop myweb && docker rm myweb && docker ps -a | grep myweb || echo 'removed'"
+      output={`f0e1d2c3b4a5
+/docker-entrypoint.sh: Configuration complete; ready for start up
+myweb
+myweb
+removed`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which command opens an interactive shell inside a running container named 'web'?"
+  options={[
+    "docker run web bash",
+    "docker exec -it web bash",
+    "docker logs web",
+    "docker rm web"
+  ]}
+  answer={1}
+  explanation="docker exec -it <name> bash runs a new interactive shell inside an already-running container. docker run would start a new one; docker logs only shows output."
+/>
+
+<Quiz
+  question="Where should a database keep its data so it survives the container being removed?"
+  options={[
+    "Inside the container's filesystem",
+    "In a Docker volume mounted with -v",
+    "In the image itself",
+    "Data can never be kept"
+  ]}
+  answer={1}
+  explanation="Containers are disposable. Persistent data belongs in a volume (-v), which lives outside the container lifecycle."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="A container keeps crashing on startup. How do you debug it?">
+  A methodical approach:
+
+  1. **`docker ps -a`** — confirm it exited and check the exit code.
+  2. **`docker logs <id>`** — read the container's output; the error is usually right there.
+  3. **`docker inspect <id>`** — check the config: environment variables, mounts, entrypoint.
+  4. **Run it interactively** — `docker run -it <image> sh` to poke around and reproduce the failure by hand.
+  5. **Check resources** — out-of-memory kills and missing volumes are common culprits.
+
+  Most container crashes are configuration or dependency issues that the logs reveal immediately.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now manage the full container lifecycle, inspect containers with logs and exec, handle images, and persist data with volumes. Next, you'll package your *own* application into an image by writing a Dockerfile.
+
+<NextLesson
+  title="Writing a Dockerfile"
+  href="/ultimate-devops-learning-hub/docker/dockerfile"
+/>

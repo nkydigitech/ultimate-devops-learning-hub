@@ -1,0 +1,176 @@
+---
+title: "Introduction to Networking"
+description: "Understand what a network is, why every DevOps engineer must know networking, and how data travels across the internet."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Networking"
+  description="The invisible layer that connects every server, container and cloud service you will ever manage."
+  timeToRead="9 min"
+  icon="🌐"
+  section="Networking"
+  sectionUrl="/networking/introduction"
+/>
+
+Every deployment you will ever do — a website, an API, a Kubernetes cluster — is really just **computers talking to each other over a network**. When something breaks in production, the problem is very often *networking*, not the code. That's why it's a core DevOps skill.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what a computer network is
+- Know why networking matters for DevOps
+- Understand the client–server model
+- Get a plain-English view of the TCP/IP model
+
+---
+
+# What is a Network?
+
+A **network** is two or more devices connected so they can share data. Your laptop talking to a website, a container talking to a database, a server calling a payment API — all of it is networking.
+
+The biggest network of all is the **internet**: millions of networks joined together.
+
+<Tip title="The one-line version">
+A network is just devices that can send messages to each other. DevOps is largely about making sure the *right* messages reach the *right* place — quickly, reliably, and securely.
+</Tip>
+
+---
+
+# The Client–Server Model
+
+Almost all network communication follows one simple pattern:
+
+| Role | What it does | Example |
+|------|--------------|---------|
+| **Client** | Asks for something (sends a request) | Your browser, a mobile app, `curl` |
+| **Server** | Answers the request (sends a response) | A web server, an API, a database |
+
+<CommandBlock command={`Client  ──────  request  ──────▶  Server
+        ◀──────  response  ──────`} language="text" />
+
+You open `example.com`, your browser (client) sends a request, the web server responds with the page. That request/response round trip is the heartbeat of the web.
+
+---
+
+# How Data Travels — The TCP/IP Model
+
+Data doesn't jump from client to server in one piece. It moves through **layers**, each with one job. The practical model used on the internet is **TCP/IP**, with four layers:
+
+| Layer | Job | You'll meet |
+|-------|-----|-------------|
+| **Application** | The actual data/app protocol | HTTP, DNS, SSH |
+| **Transport** | Reliable delivery between programs | TCP, UDP, ports |
+| **Internet** | Finding the right machine | IP addresses, routing |
+| **Link** | The physical/local network | Ethernet, Wi-Fi, MAC |
+
+<Tip title="Why layers help">
+Each layer only worries about its own job. HTTP doesn't care *how* the bytes travel; it trusts the layer below. This is exactly how DevOps tooling is built — small pieces with clear responsibilities.
+</Tip>
+
+---
+
+# See It Yourself
+
+Every networked machine has an address. Let's look at yours and reach a public server:
+
+<CommandBlock command={`ip addr           # your machine's network addresses (Linux)
+ping -c 3 google.com   # can I reach that server?`} />
+
+<Terminal
+  command="ping -c 3 google.com"
+  output={`PING google.com (142.250.72.078): 56 data bytes
+64 bytes from 142.250.72.078: icmp_seq=0 ttl=115 time=12.3 ms
+64 bytes from 142.250.72.078: icmp_seq=1 ttl=115 time=11.8 ms
+64 bytes from 142.250.72.078: icmp_seq=2 ttl=115 time=12.1 ms
+
+--- google.com ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss`}
+/>
+
+`ping` sends a tiny message and measures how long the round trip takes. If it works, you have a working network path to that server.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Explore Your Network">
+  <div slot="tasks">
+    1. Find your machine's IP address
+    2. Ping a public website and note the response time
+    3. Ping a website that doesn't exist and observe the difference
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="ping -c 2 github.com"
+      output={`PING github.com (140.82.121.3): 56 data bytes
+64 bytes from 140.82.121.3: icmp_seq=0 ttl=115 time=9.4 ms
+64 bytes from 140.82.121.3: icmp_seq=1 ttl=115 time=9.1 ms
+2 packets transmitted, 2 received, 0% packet loss`}
+    />
+    A non-existent host either fails to resolve or times out — a first clue when debugging outages.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="In the client–server model, what does the client do?"
+  options={[
+    "Stores all the data permanently",
+    "Sends a request asking for something",
+    "Only responds, never asks",
+    "Replaces the server"
+  ]}
+  answer={1}
+  explanation="The client initiates communication by sending a request. The server listens and sends back a response."
+/>
+
+<Quiz
+  question="Which TCP/IP layer is responsible for IP addresses and finding the right machine?"
+  options={["Application", "Transport", "Internet", "Link"]}
+  answer={2}
+  explanation="The Internet layer handles addressing and routing using IP addresses. The Transport layer (TCP/UDP) handles reliable delivery between programs."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why is networking knowledge important for a DevOps engineer?">
+  DevOps engineers connect and operate distributed systems, so networking shows up constantly:
+
+  - **Troubleshooting:** most "the app is down" incidents are really connectivity, DNS, or firewall problems.
+  - **Security:** firewalls, security groups, and network policies decide who can talk to what.
+  - **Architecture:** load balancers, service discovery, and ingress all depend on networking fundamentals.
+  - **Cloud:** VPCs, subnets, and routing tables are networking concepts you configure every day.
+
+  Without networking fundamentals, you can deploy an app but you can't reliably *operate* it.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now know what a network is, how the client–server model works, and how data travels through the layers of the TCP/IP model. Next, we'll zoom into the addresses and ports that make delivery possible.
+
+<NextLesson
+  title="IP Addresses & Ports"
+  href="/ultimate-devops-learning-hub/networking/ip-and-ports"
+/>

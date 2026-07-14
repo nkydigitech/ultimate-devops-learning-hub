@@ -1,0 +1,199 @@
+---
+title: "Services & Networking"
+description: "Give your Pods a stable address with Services, and expose your app to the outside world with NodePort, LoadBalancer, and Ingress."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Services & Networking"
+  description="Pods come and go — a Service gives them one stable front door."
+  timeToRead="11 min"
+  icon="☸️"
+  section="Kubernetes"
+  sectionUrl="/kubernetes/introduction"
+/>
+
+Pods are disposable and their IP addresses change every time they're recreated. So how does the rest of your system reliably reach them? The answer is a **Service** — a stable network endpoint that always points to a healthy set of Pods.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand why Services exist
+- Know the Service types: ClusterIP, NodePort, LoadBalancer
+- Understand how Services find Pods using labels
+- Know what an Ingress adds on top
+
+---
+
+# Why Services Exist
+
+Each Pod gets its own IP, but that IP disappears when the Pod is replaced. If your frontend hard-coded a backend Pod's IP, it would break constantly.
+
+A **Service** solves this: it has a stable IP and DNS name, and automatically load-balances across whatever healthy Pods currently match its label selector.
+
+<CommandBlock command={`Frontend ──▶ Service (stable) ──┬──▶ Pod (changes)
+              backend:80        ├──▶ Pod (changes)
+                                └──▶ Pod (changes)`} language="text" />
+
+---
+
+# How a Service Finds Pods
+
+Services use **labels**, not IPs. The Service's `selector` matches the labels on the Pods:
+
+<CommandBlock command={`apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: web          # match Pods labelled app=web
+  ports:
+    - port: 80        # the Service port
+      targetPort: 80  # the Pod's container port`} language="yaml" />
+
+Any Pod with the label `app: web` is automatically added to this Service — no matter when it was created or what its IP is.
+
+<Tip title="Service discovery by DNS">
+Inside the cluster, other Pods reach this Service simply as `backend` (or `backend.namespace.svc.cluster.local`). Kubernetes runs an internal DNS that resolves Service names automatically.
+</Tip>
+
+---
+
+# The Service Types
+
+| Type | Reachable from | Use for |
+|------|----------------|---------|
+| **ClusterIP** (default) | Inside the cluster only | Internal communication between services |
+| **NodePort** | A port on every node's IP | Simple external access / testing |
+| **LoadBalancer** | A cloud load balancer with a public IP | Production external access on cloud |
+
+<CommandBlock command={`# Expose the deployment as different service types
+kubectl expose deployment web --port=80 --type=ClusterIP
+kubectl expose deployment web --port=80 --type=NodePort
+kubectl expose deployment web --port=80 --type=LoadBalancer`} />
+
+<Terminal
+  command="kubectl get svc"
+  output={`NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)
+backend   ClusterIP      10.96.0.12     <none>          80/TCP
+web       LoadBalancer   10.96.0.44     203.0.113.25    80:31840/TCP`}
+/>
+
+---
+
+# Ingress — Smart HTTP Routing
+
+Giving every service its own cloud LoadBalancer is expensive. An **Ingress** is a single entry point that routes HTTP traffic to many services based on hostname or path:
+
+<CommandBlock command={`apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+spec:
+  rules:
+    - host: shop.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80`} language="yaml" />
+
+<Tip title="Ingress needs a controller">
+An Ingress object is just rules. You also need an **Ingress controller** (like NGINX Ingress or Traefik) running in the cluster to actually enforce them. It handles TLS termination and routing for all your services at once.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Expose an App Internally and Externally">
+  <div slot="tasks">
+    1. Create a ClusterIP Service for your `web` Deployment
+    2. Verify another Pod can reach it by the Service name
+    3. Create a LoadBalancer Service and note the external IP
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="kubectl run tester --image=busybox --restart=Never -it --rm -- wget -qO- backend:80"
+      output={`<!DOCTYPE html>
+<html><head><title>Welcome to nginx!</title></head>...`}
+    />
+    The temporary `tester` Pod reached the backend using just the Service name `backend` — cluster DNS resolved it, no IP needed.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="How does a Service know which Pods to send traffic to?"
+  options={[
+    "By their fixed IP addresses",
+    "By matching Pod labels with its selector",
+    "By the order they were created",
+    "It sends to all Pods in the cluster"
+  ]}
+  answer={1}
+  explanation="A Service uses a label selector. Any Pod whose labels match is automatically included, regardless of its IP — which is what makes it stable."
+/>
+
+<Quiz
+  question="You want a single entry point that routes shop.example.com/api and shop.example.com/ to different services. What do you use?"
+  options={["A ClusterIP", "A NodePort", "An Ingress", "A Pod"]}
+  answer={2}
+  explanation="An Ingress provides host- and path-based HTTP routing to multiple backend Services through one entry point, typically with TLS."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Explain how traffic flows from a user's browser to a Pod in Kubernetes.">
+  A complete path ties Services, Ingress, and Pods together:
+
+  1. DNS resolves `shop.example.com` to the cluster's external load balancer / Ingress IP.
+  2. The **Ingress controller** receives the request and matches it against Ingress rules (host + path).
+  3. It forwards the request to the appropriate **Service** (ClusterIP).
+  4. The Service load-balances the request to one of the healthy **Pods** matching its selector.
+  5. The Pod's container handles the request and responds back along the same path.
+
+  The key insight: Pods change constantly, but Services and Ingress provide the stable addresses that make this reliable.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand how Services give Pods a stable address, the ClusterIP / NodePort / LoadBalancer types, label-based selection, and how Ingress routes external HTTP traffic. Next, you'll handle configuration and scaling with ConfigMaps, Secrets, and autoscaling.
+
+<NextLesson
+  title="Config, Secrets & Scaling"
+  href="/ultimate-devops-learning-hub/kubernetes/config-and-scaling"
+/>

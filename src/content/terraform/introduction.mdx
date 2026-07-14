@@ -1,0 +1,196 @@
+---
+title: "Introduction to Terraform"
+description: "Understand Infrastructure as Code, what Terraform does, and why declaring your infrastructure beats clicking through consoles."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Terraform"
+  description="Describe your entire cloud infrastructure in code — and build it with one command."
+  timeToRead="9 min"
+  icon="🏗️"
+  section="Terraform"
+  sectionUrl="/terraform/introduction"
+/>
+
+Clicking through a cloud console to create servers works once — but it's slow, error-prone, and impossible to reproduce. **Terraform** lets you describe your infrastructure in code, so you can create, change, and destroy it reliably and repeatably. This is **Infrastructure as Code (IaC)**.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what Infrastructure as Code means
+- Know what Terraform is and how it works
+- Understand providers, resources, and the core workflow
+- Recognise why declarative infrastructure matters
+
+---
+
+# What is Infrastructure as Code?
+
+Instead of manually provisioning servers, networks, and databases through a web console, you write **code** that describes what you want. That code is:
+
+- **Version-controlled** — every change is tracked in Git.
+- **Reviewable** — infrastructure changes go through pull requests.
+- **Repeatable** — spin up an identical environment any time.
+- **Documented** — the code *is* the documentation.
+
+<Tip title="Click-ops vs code">
+Manually clicking in a console is "click-ops": fast to start, impossible to reproduce. IaC trades a little upfront effort for infrastructure you can rebuild identically, forever.
+</Tip>
+
+---
+
+# What Makes Terraform Special
+
+Terraform is **cloud-agnostic** and **declarative**:
+
+- **Cloud-agnostic** — the same tool manages AWS, Azure, GCP, Kubernetes, and hundreds of other platforms through *providers*.
+- **Declarative** — you describe the desired end state, and Terraform figures out the steps to get there (create, update, or delete resources as needed).
+
+<CommandBlock command={`You write:  "I want 3 servers and a load balancer"
+Terraform:  compares desired vs actual → makes the minimal changes`} language="text" />
+
+---
+
+# The Building Blocks
+
+| Concept | What it is |
+|---------|------------|
+| **Provider** | A plugin for a platform (aws, azurerm, google, kubernetes) |
+| **Resource** | A single piece of infrastructure (a server, a bucket, a DNS record) |
+| **State** | Terraform's record of what it has created |
+| **Plan** | A preview of the changes Terraform will make |
+
+A tiny example that creates an AWS S3 bucket:
+
+<CommandBlock command={`terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws" }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_s3_bucket" "data" {
+  bucket = "my-devops-course-bucket"
+}`} language="hcl" />
+
+The language is **HCL** (HashiCorp Configuration Language) — readable and purpose-built for infrastructure.
+
+---
+
+# The Core Workflow
+
+Three commands do almost everything:
+
+<CommandBlock command={`terraform init      # download providers, set up the working dir
+terraform plan      # preview what will change
+terraform apply     # make it real
+terraform destroy   # tear it all down`} />
+
+<Terminal
+  command="terraform plan"
+  output={`Terraform will perform the following actions:
+
+  # aws_s3_bucket.data will be created
+  + resource "aws_s3_bucket" "data" {
+      + bucket = "my-devops-course-bucket"
+      + id     = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.`}
+/>
+
+`plan` shows you *exactly* what will happen before anything changes — no surprises.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Your First Terraform Config">
+  <div slot="tasks">
+    1. Write a config that uses the `local` provider to create a file resource
+    2. Run `terraform init`, then `plan`
+    3. Run `apply` and confirm the file was created
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`resource "local_file" "hello" {
+  filename = "hello.txt"
+  content  = "Infrastructure as Code!"
+}`} language="hcl" />
+    <Terminal
+      command="terraform init && terraform apply -auto-approve && cat hello.txt"
+      output={`Terraform has been successfully initialized!
+local_file.hello: Creating...
+local_file.hello: Creation complete after 0s
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+Infrastructure as Code!`}
+    />
+    The `local` provider needs no cloud account — perfect for learning the workflow.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What does 'declarative' mean in Terraform?"
+  options={[
+    "You write step-by-step instructions",
+    "You describe the desired end state and Terraform works out the changes needed",
+    "You must delete resources manually",
+    "It only works on AWS"
+  ]}
+  answer={1}
+  explanation="Terraform is declarative: you declare the desired state, and it computes and applies the minimal set of changes to reach it — you don't script each step."
+/>
+
+<Quiz
+  question="Which command previews changes without making them?"
+  options={["terraform init", "terraform plan", "terraform apply", "terraform destroy"]}
+  answer={1}
+  explanation="terraform plan shows exactly what will be created, changed, or destroyed. apply performs the changes; init sets up the working directory."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why is Infrastructure as Code important, and why Terraform specifically?">
+  IaC brings software-engineering discipline to infrastructure:
+
+  - **Reproducibility:** rebuild identical environments (dev, staging, prod) from the same code.
+  - **Version control & review:** infrastructure changes are tracked in Git and reviewed like code.
+  - **Auditability:** every change is recorded, which matters for compliance.
+  - **Disaster recovery:** recreate everything from code if it's lost.
+
+  Terraform stands out because it's **cloud-agnostic** (one tool, many providers), **declarative**, and has a huge provider ecosystem — so teams standardise on it across AWS, Azure, GCP, and beyond.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand Infrastructure as Code, what Terraform is, its building blocks (providers, resources, state, plan), and the init → plan → apply workflow. Next, you'll write real configuration with variables and outputs.
+
+<NextLesson
+  title="Configuration & Variables"
+  href="/ultimate-devops-learning-hub/terraform/configuration-basics"
+/>

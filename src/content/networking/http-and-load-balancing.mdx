@@ -1,0 +1,213 @@
+---
+title: "HTTP & Load Balancing"
+description: "Understand HTTP requests, status codes, HTTPS, and how load balancers and reverse proxies keep production apps fast and reliable."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="HTTP & Load Balancing"
+  description="The language of the web, and how production systems serve millions of users without falling over."
+  timeToRead="11 min"
+  icon="🌐"
+  section="Networking"
+  sectionUrl="/networking/introduction"
+/>
+
+**HTTP** is the protocol your browsers, APIs, and microservices use to talk. **Load balancing** is how you take that traffic and spread it across many servers so no single one is overwhelmed. Together they're the backbone of every web system you'll operate.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand the structure of an HTTP request and response
+- Read HTTP status codes confidently
+- Know what HTTPS adds and why it matters
+- Understand load balancers and reverse proxies
+
+---
+
+# Anatomy of an HTTP Request
+
+Every request has a **method**, a **path**, **headers**, and sometimes a **body**:
+
+<CommandBlock command={`GET /api/users/42 HTTP/1.1
+Host: example.com
+Authorization: Bearer <token>
+Accept: application/json`} language="http" />
+
+Common methods:
+
+| Method | Meaning |
+|--------|---------|
+| **GET** | Read data (no changes) |
+| **POST** | Create something new |
+| **PUT / PATCH** | Update existing data |
+| **DELETE** | Remove data |
+
+---
+
+# Status Codes — the Server's Answer
+
+The first thing you check when debugging an API is the status code:
+
+| Range | Meaning | Common examples |
+|-------|---------|-----------------|
+| **2xx** | Success | 200 OK, 201 Created |
+| **3xx** | Redirect | 301 Moved, 304 Not Modified |
+| **4xx** | *You* made a mistake | 401 Unauthorized, 403 Forbidden, 404 Not Found |
+| **5xx** | *Server* made a mistake | 500 Internal Error, 502 Bad Gateway, 503 Unavailable |
+
+<Tip title="4xx vs 5xx">
+`4xx` means the client sent something wrong (bad URL, missing auth). `5xx` means the server failed. This single distinction tells you *which side* to start debugging.
+</Tip>
+
+---
+
+# HTTPS — HTTP with Encryption
+
+**HTTPS** is HTTP wrapped in TLS encryption. It gives you:
+
+- **Confidentiality** — nobody can read the traffic in transit
+- **Integrity** — nobody can tamper with it
+- **Authenticity** — a certificate proves you're talking to the real server
+
+<Warning title="Certificates expire">
+An expired TLS certificate takes a site down instantly and loudly. Automate renewal (e.g. with Let's Encrypt / cert-manager) and monitor expiry dates — this is a classic avoidable outage.
+</Warning>
+
+---
+
+# Load Balancers & Reverse Proxies
+
+A **load balancer** sits in front of several identical servers and distributes incoming requests among them:
+
+<CommandBlock command={`                 ┌──▶ Server A
+Client ──▶ Load ──┼──▶ Server B
+          Balancer└──▶ Server C`} language="text" />
+
+Why it's essential:
+
+- **Scale** — add more servers to handle more traffic
+- **High availability** — if one server dies, traffic routes to the healthy ones
+- **Zero-downtime deploys** — update servers one at a time behind the balancer
+
+A **reverse proxy** (like Nginx) is closely related: it receives client requests and forwards them to backend services, often adding TLS termination, caching, and routing.
+
+## Common balancing strategies
+
+| Strategy | How it picks a server |
+|----------|-----------------------|
+| **Round robin** | Each request to the next server in turn |
+| **Least connections** | The server with the fewest active connections |
+| **IP hash** | Same client always goes to the same server |
+
+<Tip title="Health checks">
+A load balancer constantly pings each backend's health endpoint. If a server fails the check, it's pulled out of rotation automatically — this is what keeps a service "up" even when individual machines fail.
+</Tip>
+
+---
+
+# See It Yourself
+
+Inspect a real HTTP response with `curl`:
+
+<CommandBlock command={`curl -I https://example.com     # headers + status only
+curl -s -o /dev/null -w "%{http_code}\\n" https://example.com`} />
+
+<Terminal
+  command="curl -I https://example.com"
+  output={`HTTP/2 200
+content-type: text/html; charset=UTF-8
+server: nginx
+cache-control: max-age=3600`}
+/>
+
+The `200` confirms success, and `server: nginx` reveals a reverse proxy in front of the app.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Read HTTP Like an Engineer">
+  <div slot="tasks">
+    1. Fetch the headers of a website and note the status code
+    2. Request a page that doesn't exist and observe the 404
+    3. Identify whether the site uses HTTPS and what server software it reports
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command='curl -s -o /dev/null -w "%{http_code}\n" https://example.com/does-not-exist'
+      output={`404`}
+    />
+    A `404` confirms the server is reachable and responding — the *path* is simply wrong, not the server.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="A request returns a 503 status code. Where do you start looking?"
+  options={[
+    "The client's request — it's malformed",
+    "The server / backend — it's failing or unavailable",
+    "The DNS records only",
+    "Nothing — 503 means success"
+  ]}
+  answer={1}
+  explanation="5xx codes indicate a server-side problem. 503 specifically means the service is unavailable — often an overloaded or unhealthy backend behind a load balancer."
+/>
+
+<Quiz
+  question="What is the main benefit of putting a load balancer in front of multiple servers?"
+  options={[
+    "It encrypts the database",
+    "It distributes traffic and keeps the service available if a server fails",
+    "It replaces the need for DNS",
+    "It makes code compile faster"
+  ]}
+  answer={1}
+  explanation="A load balancer spreads requests across servers for scale, and routes around failed servers using health checks for high availability."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Walk me through what happens when a user visits your website.">
+  A strong answer connects everything in this course:
+
+  1. **DNS** resolves the domain name to an IP address.
+  2. The browser opens a **TCP** connection to that IP on **port 443**.
+  3. A **TLS handshake** sets up HTTPS encryption using the server's certificate.
+  4. The browser sends an **HTTP GET** request for the page.
+  5. A **load balancer / reverse proxy** receives it and forwards it to a healthy backend server.
+  6. The server responds with a **200** and the HTML, which the browser renders.
+
+  Being able to narrate this end to end shows you truly understand how the pieces fit together.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed the Networking track: the client–server model, IP addresses and ports, DNS, and now HTTP, HTTPS, and load balancing. These fundamentals underpin every container, cluster, and cloud service you'll work with next. On to containers with Docker.
+
+<NextLesson
+  title="Introduction to Docker"
+  href="/ultimate-devops-learning-hub/docker/introduction"
+/>

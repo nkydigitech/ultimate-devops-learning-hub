@@ -1,0 +1,221 @@
+---
+title: "A Full CI/CD Pipeline"
+description: "Extend your Jenkinsfile into a real CI/CD pipeline: build a Docker image, push it, and deploy with an approval gate."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="A Full CI/CD Pipeline"
+  description="Build, containerise, push, and deploy — with a human gate before production."
+  timeToRead="11 min"
+  icon="👷"
+  section="Jenkins"
+  sectionUrl="/jenkins/introduction"
+/>
+
+Time to connect everything you've learned into one real pipeline. We'll take code, test it, package it as a **Docker image**, push it to a registry, and deploy it — with an approval step before production. This is a genuine end-to-end CI/CD flow.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Build and tag a Docker image inside a pipeline
+- Push the image to a registry using credentials
+- Add a manual approval gate before production
+- Structure a complete CI/CD Jenkinsfile
+
+---
+
+# The Pipeline Stages
+
+A production CI/CD pipeline usually flows like this:
+
+<CommandBlock command={`Checkout → Test → Build Image → Push Image → Deploy Staging → [Approve] → Deploy Prod`} language="text" />
+
+Each stage builds on the last, and the approval gate ensures a human confirms before the highest-risk step.
+
+---
+
+# Building and Pushing a Docker Image
+
+Using an image tagged with the build number gives every build a unique, traceable artifact:
+
+<CommandBlock command={`stage('Build Image') {
+  steps {
+    sh 'docker build -t myapp:\${BUILD_NUMBER} .'
+  }
+}
+stage('Push Image') {
+  steps {
+    withCredentials([usernamePassword(
+      credentialsId: 'dockerhub',
+      usernameVariable: 'USER',
+      passwordVariable: 'PASS')]) {
+      sh '''
+        echo "\$PASS" | docker login -u "\$USER" --password-stdin
+        docker push myapp:\${BUILD_NUMBER}
+      '''
+    }
+  }
+}`} language="groovy" />
+
+<Tip title="Tag with the build number">
+`myapp:${BUILD_NUMBER}` gives each build a unique tag, so you always know exactly which image is running and can roll back to a specific one. Avoid deploying `latest` to production — it's ambiguous.
+</Tip>
+
+---
+
+# The Approval Gate
+
+The `input` step pauses the pipeline and waits for a human to approve — perfect before a production deploy:
+
+<CommandBlock command={`stage('Approve Production') {
+  steps {
+    input message: 'Deploy to production?', ok: 'Deploy'
+  }
+}
+stage('Deploy Production') {
+  steps {
+    sh './deploy.sh production myapp:\${BUILD_NUMBER}'
+  }
+}`} language="groovy" />
+
+<Terminal
+  command="# Stage View, paused at the gate:"
+  output={`Checkout        ✓
+Test            ✓
+Build Image     ✓
+Push Image      ✓
+Deploy Staging  ✓
+Approve Prod    ⏸  Waiting: 'Deploy to production?'  [Deploy] [Abort]`}
+/>
+
+<Warning title="Guard the input step">
+By default anyone with access can approve an `input`. Use the `submitter` parameter to restrict approval to specific users or groups, so only authorised people can release to production.
+</Warning>
+
+---
+
+# Putting It All Together
+
+The complete `Jenkinsfile`:
+
+<CommandBlock command={`pipeline {
+  agent any
+  environment { IMAGE = "myapp:\${BUILD_NUMBER}" }
+
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Test')     { steps { sh 'npm ci && npm test' } }
+    stage('Build Image') { steps { sh 'docker build -t \$IMAGE .' } }
+    stage('Push Image') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub',
+          usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+          sh 'echo "\$PASS" | docker login -u "\$USER" --password-stdin && docker push \$IMAGE'
+        }
+      }
+    }
+    stage('Deploy Staging') { steps { sh './deploy.sh staging \$IMAGE' } }
+    stage('Approve') { steps { input message: 'Deploy to production?', ok: 'Deploy' } }
+    stage('Deploy Production') { steps { sh './deploy.sh production \$IMAGE' } }
+  }
+
+  post {
+    failure { echo 'Build failed — notify the team' }
+    always  { sh 'docker logout || true' }
+  }
+}`} language="groovy" />
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Design a CI/CD Pipeline">
+  <div slot="tasks">
+    1. Sketch a Jenkinsfile that tests, builds a Docker image tagged with the build number, and pushes it
+    2. Add a staging deploy, an approval gate, then a production deploy
+    3. Add a `post` failure notification and a `docker logout` in `always`
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`stages {
+  stage('Test')            { steps { sh 'npm ci && npm test' } }
+  stage('Build & Push')    { steps { sh 'docker build -t myapp:\${BUILD_NUMBER} . && docker push myapp:\${BUILD_NUMBER}' } }
+  stage('Deploy Staging')  { steps { sh './deploy.sh staging myapp:\${BUILD_NUMBER}' } }
+  stage('Approve')         { steps { input message: 'Ship to prod?' } }
+  stage('Deploy Prod')     { steps { sh './deploy.sh production myapp:\${BUILD_NUMBER}' } }
+}`} language="groovy" />
+    The unique image tag makes every deploy traceable and easy to roll back.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why tag a Docker image with the build number instead of just 'latest' in a CI/CD pipeline?"
+  options={[
+    "It builds faster",
+    "It gives each build a unique, traceable tag so you know exactly what's deployed and can roll back",
+    "latest is not allowed",
+    "It reduces image size"
+  ]}
+  answer={1}
+  explanation="A unique tag like the build number makes every artifact traceable and enables precise rollbacks. 'latest' is ambiguous — you can't tell which build is actually running."
+/>
+
+<Quiz
+  question="What does the input step do in a Jenkins pipeline?"
+  options={[
+    "Reads a file from disk",
+    "Pauses the pipeline to wait for human approval before continuing",
+    "Installs dependencies",
+    "Logs into Docker"
+  ]}
+  answer={1}
+  explanation="The input step pauses the pipeline until a human approves (or aborts), commonly used as a gate before deploying to production. Restrict it with 'submitter'."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Describe a complete CI/CD pipeline you've designed or would design in Jenkins.">
+  A strong answer walks the full lifecycle with safety built in:
+
+  1. **Checkout** the code (multibranch, from a Jenkinsfile).
+  2. **Test** — unit and integration tests; fail fast.
+  3. **Build a Docker image** tagged with the build number for traceability.
+  4. **Push** the image to a registry using credentials from the Credentials store.
+  5. **Deploy to staging** automatically and run smoke tests.
+  6. **Manual approval gate** (`input`) restricted to authorised submitters.
+  7. **Deploy to production** using the exact same image that passed staging.
+  8. **Post actions** — notify on failure, clean up always, keep artifacts for rollback.
+
+  The principles that matter: test before you ship, promote the *same* artifact through environments, gate production, and make everything traceable and reversible.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed the Jenkins track: architecture, setup and jobs, pipelines as code, and now a full CI/CD pipeline with Docker, registry push, and an approval gate. You can automate delivery end to end. Next, we step into the frontier: Agentic AI for DevOps.
+
+<NextLesson
+  title="Introduction to Agentic AI"
+  href="/ultimate-devops-learning-hub/agentic-ai/introduction"
+/>

@@ -1,0 +1,202 @@
+---
+title: "Working with LLMs & Prompting"
+description: "Learn to get reliable results from language models: clear prompts, context, structured output, and avoiding common failure modes."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Working with LLMs & Prompting"
+  description="The quality of what you get out depends on what you put in."
+  timeToRead="10 min"
+  icon="🤖"
+  section="Agentic AI"
+  sectionUrl="/agentic-ai/introduction"
+/>
+
+An LLM is only as useful as the instructions you give it. **Prompting** is the skill of communicating clearly with a model so it returns accurate, useful, and safe results. For DevOps, that means turning it into a reliable assistant for logs, configs, and troubleshooting.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Write clear, effective prompts
+- Provide the right context to ground a model
+- Request structured, parseable output
+- Recognise and mitigate hallucination
+
+---
+
+# The Anatomy of a Good Prompt
+
+Strong prompts usually have four parts:
+
+| Part | Purpose | Example |
+|------|---------|---------|
+| **Role** | Who the model should act as | "You are a senior SRE." |
+| **Task** | What to do | "Explain this error and suggest a fix." |
+| **Context** | The data to work from | The actual log lines |
+| **Format** | How to respond | "Reply as: Cause / Fix / Command." |
+
+<Tip title="Be specific, not polite">
+Models don't need pleasantries — they need clarity. "Summarise the top 3 errors in these logs as a bulleted list" beats "Could you please take a look at these logs?" every time.
+</Tip>
+
+---
+
+# Context Is Everything
+
+A model can't know your systems unless you tell it. Compare:
+
+<CommandBlock command={`# Weak — no context
+"Why is my pod failing?"
+
+# Strong — grounded in real data
+"You are a Kubernetes expert. Given this output, identify the
+cause and the fix:
+
+$ kubectl describe pod web-xyz
+  State: Waiting
+  Reason: ImagePullBackOff
+  Message: manifest for myapp:1.4 not found"`} language="text" />
+
+The second prompt gives the model exactly what it needs to reason about *your* problem — not a generic one.
+
+---
+
+# Ask for Structured Output
+
+When another program will consume the answer, ask for a structured format like JSON:
+
+<CommandBlock command={`Prompt: "Classify this alert. Respond ONLY as JSON:
+{ severity: 'low|medium|high', service: string, action: string }"
+
+Response:
+{ "severity": "high", "service": "checkout", "action": "restart pods" }`} language="text" />
+
+<Tip title="Structured output enables automation">
+When you constrain the model to a schema, its output becomes machine-readable — the bridge between an LLM and an automated pipeline or agent tool.
+</Tip>
+
+---
+
+# Few-Shot Examples
+
+Showing a couple of examples ("few-shot") steers the model far better than describing the task in words alone:
+
+<CommandBlock command={`Convert log lines to severity labels.
+
+"connection timeout after 30s"     → WARN
+"disk usage at 95%"                → CRITICAL
+"user logged in successfully"      → INFO
+"failed to bind to port 8080"      → ???`} language="text" />
+
+The examples teach the pattern; the model completes the last line consistently.
+
+---
+
+# Hallucination — the Big Risk
+
+LLMs can state wrong things **confidently**. They may invent a command flag, a config option, or an API that doesn't exist.
+
+<Warning title="Never run AI output blindly">
+Treat model output as a knowledgeable suggestion, not gospel. Always verify commands, config, and especially anything destructive before running it — in DevOps, a hallucinated `--force` flag can cause real damage. Ground the model in real docs and data, and keep a human in the loop for risky actions.
+</Warning>
+
+Ways to reduce hallucination:
+
+- **Provide context** — give it the real docs/logs so it doesn't guess.
+- **Ask it to cite** — "quote the exact log line that supports your conclusion."
+- **Request uncertainty** — "say 'unsure' if the data doesn't show it."
+- **Verify** — check commands against real documentation before executing.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Turn a Vague Prompt into a Strong One">
+  <div slot="tasks">
+    1. Start with a weak prompt: "fix my deployment"
+    2. Rewrite it with role, task, context (paste real error output), and output format
+    3. Add a constraint that reduces hallucination
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`You are a Kubernetes SRE. Diagnose the issue below and respond as:
+Cause / Fix / Exact command.
+Only use information present in the output — if unsure, say so.
+
+$ kubectl get pods
+web-abc  0/1  CrashLoopBackOff  6  4m
+$ kubectl logs web-abc
+Error: DATABASE_URL environment variable not set`} language="text" />
+    Role + task + real context + format + an uncertainty guard = a prompt that produces a reliable, verifiable answer.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the most reliable way to get a model to reason about YOUR specific problem?"
+  options={[
+    "Ask more politely",
+    "Provide relevant context — the actual logs, configs, or error output",
+    "Use more exclamation marks",
+    "Ask the same question repeatedly"
+  ]}
+  answer={1}
+  explanation="Models have no knowledge of your systems unless you provide it. Grounding the prompt in real context (logs, configs, errors) is what makes the answer specific and useful."
+/>
+
+<Quiz
+  question="What is 'hallucination' in the context of LLMs?"
+  options={[
+    "The model refusing to answer",
+    "The model confidently producing incorrect or invented information",
+    "The model running out of memory",
+    "A type of prompt"
+  ]}
+  answer={1}
+  explanation="Hallucination is when a model states false information confidently — inventing commands, flags, or APIs. Always verify output, especially before running anything destructive."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How would you safely use an LLM to help operate production systems?">
+  Use it as an accelerator with strict guardrails:
+
+  - **Ground every prompt in real data** — logs, metrics, configs — to reduce hallucination.
+  - **Request structured, verifiable output** so it can be checked and, where safe, automated.
+  - **Never execute generated commands blindly** — review them, especially destructive ones.
+  - **Keep a human in the loop** for any change to live infrastructure.
+  - **Protect secrets** — don't paste credentials into prompts; redact sensitive data.
+  - **Log and audit** AI-assisted actions like any other change.
+
+  The model drafts and explains; the engineer verifies and approves. That division keeps the speed benefit without the risk.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now write grounded, structured prompts, use few-shot examples, and guard against hallucination. But prompting alone doesn't let a model *act* — it needs tools. Next, you'll learn how the Model Context Protocol connects AI to real systems.
+
+<NextLesson
+  title="Tools & the Model Context Protocol"
+  href="/ultimate-devops-learning-hub/agentic-ai/mcp-and-tools"
+/>

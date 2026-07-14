@@ -26,4 +26,12 @@ export const collections = {
   azure: section("azure"),
   python: section("python"),
   ansible: section("ansible"),
+  networking: section("networking"),
+  "github-actions": section("github-actions"),
+  docker: section("docker"),
+  kubernetes: section("kubernetes"),
+  terraform: section("terraform"),
+  jenkins: section("jenkins"),
+  "agentic-ai": section("agentic-ai"),
+  devsecops: section("devsecops"),
 };
