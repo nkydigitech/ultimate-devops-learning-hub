@@ -1,0 +1,194 @@
+---
+title: "Installing Linux"
+description: "Install Linux using WSL, VirtualBox, or VMware and prepare your environment for hands-on DevOps labs."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Installing Linux"
+  description="Set up a real Linux environment with WSL, VirtualBox, or VMware — ready for every hands-on lab in this course."
+  timeToRead="10 min"
+  icon="💿"
+/>
+
+You've completed the introduction — now it's time to get a real Linux environment running. From here on, almost every lesson includes practical exercises, and you'll be working in a real Linux shell just like professional DevOps Engineers.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand the different ways to install Linux
+- Choose the best installation method for your machine
+- Install Ubuntu Linux
+- Open your first Linux terminal
+- Verify that Linux is working correctly
+
+---
+
+# Which Installation Method Should You Choose?
+
+There are three popular ways to run Linux. For most people learning DevOps on Windows, **WSL** is the fastest path.
+
+| Method | Best for | Ease | Recommended |
+|--------|----------|------|-------------|
+| **WSL** (Windows Subsystem for Linux) | Windows 10/11 users, beginners, developers | Very easy | ⭐⭐⭐⭐⭐ |
+| **VirtualBox** | Practicing sysadmin, full Linux desktop, snapshots | Easy | ⭐⭐⭐⭐⭐ |
+| **VMware Workstation** | Advanced users, enterprise, higher performance | Moderate | ⭐⭐⭐⭐ |
+
+<Tip title="Which Distro?">
+Throughout this course we use **Ubuntu 24.04 LTS** — beginner friendly, superbly documented, backed by a huge community, and the distribution you'll most often meet in the cloud.
+</Tip>
+
+---
+
+# Hardware Requirements
+
+| | Minimum | Recommended |
+|---|---------|-------------|
+| RAM | 8 GB | 16 GB |
+| CPU | Dual Core | Quad Core |
+| Storage | 40 GB free | SSD |
+| Network | — | Stable internet |
+
+---
+
+# Option 1 — Install Ubuntu with WSL (Recommended)
+
+**Step 1 — Open PowerShell as Administrator.** Search for *PowerShell*, right-click, and choose *Run as Administrator*.
+
+**Step 2 — Run the installer:**
+
+<CommandBlock command="wsl --install" language="powershell" />
+
+Windows will automatically enable WSL, download Ubuntu, configure Linux, and restart if necessary.
+
+**Step 3 — Restart your computer.**
+
+**Step 4 — Open Ubuntu** and create your username and password when prompted. Choose something you'll remember (e.g. username `student`).
+
+**Step 5 — Done.** Linux is now installed and ready.
+
+---
+
+# Option 2 — Install Ubuntu with VirtualBox
+
+1. Download VirtualBox from [virtualbox.org](https://www.virtualbox.org).
+2. Download the **Ubuntu 24.04 LTS** ISO from [ubuntu.com/download/desktop](https://ubuntu.com/download/desktop).
+3. Create a new VM — Name: `Ubuntu DevOps Lab`, Memory: `4096 MB`+, Processors: `2`+, Disk: `30 GB` dynamically allocated.
+4. Attach the Ubuntu ISO and start the VM.
+5. Follow the installer: *Install Ubuntu → Normal Installation → Erase disk (only inside the VM) → Continue*.
+
+---
+
+# Verify Your Installation
+
+Open your terminal and run these commands. If Linux responds, your environment works.
+
+<Terminal
+  command="whoami && pwd && uname -a"
+  output={`student
+/home/student
+Linux ubuntu 6.8.0-generic #1 SMP x86_64 GNU/Linux`}
+/>
+
+---
+
+# 🧪 Hands-on: Your First Lab
+
+<Exercise title="Verify Your Linux Installation">
+  <div slot="tasks">
+    Run each of these commands and confirm you get output:
+
+    1. `whoami` — your current user
+    2. `pwd` — your current directory
+    3. `date` — the system date/time
+    4. `uname -a` — kernel and system info
+    5. `ls` — list your home directory
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="whoami && pwd && date && uname -a && ls"
+      output={`student
+/home/student
+Sat Jul 12 10:22:31 UTC 2026
+Linux ubuntu 6.8.0-generic #1 SMP x86_64 GNU/Linux
+Desktop  Documents  Downloads`}
+    />
+  </div>
+</Exercise>
+
+<Tip title="Screenshot Challenge 📸">
+Take screenshots of your terminal running `whoami`, `pwd`, and `uname -a`. Real screenshots of your own environment make far better portfolio evidence than stock images.
+</Tip>
+
+---
+
+# Troubleshooting
+
+<Warning title="Common Install Problems">
+- **`wsl is not recognized`** — make sure you're in **PowerShell as Administrator**, and update Windows if needed.
+- **Ubuntu won't open** — restart Windows, then run `wsl --update`.
+- **Command not found** — check your spelling. Linux commands are **case-sensitive**.
+</Warning>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which installation method is recommended for most Windows users?"
+  options={["VMware Workstation", "WSL", "Dual Boot", "Raspberry Pi"]}
+  answer={1}
+  explanation="WSL (Windows Subsystem for Linux) is the fastest, lightest way to run Linux directly inside Windows — no virtual machine required."
+/>
+
+<Quiz
+  question="Which Linux distribution do we use throughout this course?"
+  options={["Debian", "Fedora", "Ubuntu 24.04 LTS", "Arch Linux"]}
+  answer={2}
+  explanation="Ubuntu 24.04 LTS is beginner friendly, well documented, and widely used in cloud environments — ideal for learning DevOps."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What is WSL and why is it useful for DevOps engineers on Windows?">
+  **WSL (Windows Subsystem for Linux)** lets you run a genuine Linux environment directly on Windows without a virtual machine or dual boot.
+
+  - It's lightweight and starts almost instantly.
+  - It gives you a real Linux shell, package manager, and filesystem.
+  - It integrates with Windows tools and editors like VS Code.
+
+  For DevOps engineers this means you can practice Linux, run Docker, and write Bash scripts on a Windows laptop with almost no overhead.
+</InterviewPrep>
+
+---
+
+# Summary
+
+In this lesson you learned:
+
+- The three main ways to install Linux (WSL, VirtualBox, VMware)
+- Why Ubuntu 24.04 LTS is our distribution of choice
+- How to install and verify your Linux environment
+
+Your Linux environment is now ready for the rest of the course.
+
+<NextLesson
+  title="Linux Basics"
+  href="/ultimate-devops-learning-hub/linux/linux-basics"
+/>

@@ -1,0 +1,194 @@
+---
+title: "Bash and Shell Scripting"
+description: "Learn the Bash shell, write your first scripts, and automate the repetitive work every DevOps engineer faces."
+order: 6
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Bash and Shell Scripting"
+  description="Turn ten repeated commands into one — the foundation of every DevOps automation."
+  timeToRead="14 min"
+  icon="📜"
+/>
+
+Imagine repeating the same ten commands every morning. Now imagine typing **one command** and letting the computer do all the work. That's exactly what Bash is for. Bash is the default shell on most Linux systems and one of the most important tools a DevOps engineer must master.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what Bash is
+- Execute commands and use variables
+- Display text with `echo`
+- Create, make executable, and run your first script
+- Read user input
+
+---
+
+# What is Bash?
+
+Bash stands for **Bourne Again SHell**. A shell is a program that lets you communicate with Linux — instead of clicking buttons, you type commands.
+
+<CommandBlock command={`You
+ ↓
+Bash (the shell)
+ ↓
+Linux Kernel
+ ↓
+Computer`} language="text" />
+
+Almost every DevOps automation begins with Bash.
+
+---
+
+# Your First Command and Variables
+
+<Terminal command={'echo "Hello Linux!"'} output="Hello Linux!" />
+
+Variables store information. The `$` tells Bash to use the value stored inside:
+
+<CommandBlock command={`name="John"
+echo $name        # John
+
+echo $HOME        # /home/student  (built-in)
+echo $USER        # student         (built-in)`} />
+
+---
+
+# Creating Your First Script
+
+Create a file, open it in an editor, and add a shebang plus a command:
+
+<CommandBlock command={`nano hello.sh`} />
+
+<CommandBlock command={`#!/bin/bash
+
+echo "Welcome to DevOps!"`} />
+
+Save it, make it executable, and run it:
+
+<Terminal
+  command="chmod +x hello.sh && ./hello.sh"
+  output="Welcome to DevOps!"
+/>
+
+Congratulations — you've written your first Bash program.
+
+<Warning title="Two things beginners forget">
+- The **shebang** `#!/bin/bash` on line 1 — it tells Linux how to run the file.
+- The **execute permission** — if you see `Permission denied`, run `chmod +x filename.sh`.
+</Warning>
+
+---
+
+# Reading User Input
+
+<CommandBlock command={`#!/bin/bash
+
+echo "What is your name?"
+read username
+echo "Welcome $username!"`} />
+
+Anything after `#` is a **comment** and is ignored by Bash — use comments to explain your code.
+
+---
+
+# Real DevOps Example
+
+Instead of typing three deploy commands every day, put them in a script and run it with one command:
+
+<CommandBlock command={`#!/bin/bash
+# deploy.sh — build and ship the app
+
+git pull
+docker build -t app .
+docker compose up -d`} />
+
+<Terminal command="./deploy.sh" output={`Already up to date.
+Successfully built app
+Container app-1 Started`} />
+
+Automation saves time and removes human error.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Build a system-info Script">
+  <div slot="tasks">
+    Create a script named `system-info.sh` that prints:
+
+    1. The current user
+    2. The current directory
+    3. Today's date
+    4. Your home directory
+
+    Try it yourself before revealing the solution.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="cat system-info.sh"
+      output={`#!/bin/bash
+echo "User: $USER"
+echo "Directory: $(pwd)"
+echo "Date: $(date)"
+echo "Home: $HOME"`}
+    />
+  </div>
+</Exercise>
+
+<Tip title="DevOps Tip">
+Whenever you catch yourself repeating commands, ask: *"Can I automate this with Bash?"* Very often the answer is yes.
+</Tip>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which command prints text to the screen?"
+  options={["ls", "echo", "pwd", "cat"]}
+  answer={1}
+  explanation="echo prints whatever text or variable you give it. It's the most common way to output messages in a script."
+/>
+
+<Quiz
+  question="What must the FIRST line of a Bash script be?"
+  options={["#!/bin/bash", "# comment", "echo start", "run bash"]}
+  answer={0}
+  explanation="The shebang #!/bin/bash tells the system which interpreter should run the script."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What is a shebang, and what happens if you omit it?">
+  A **shebang** is the `#!/bin/bash` (or `#!/usr/bin/env bash`) line at the very top of a script. It tells the operating system which interpreter to use when the file is executed directly.
+
+  If you omit it and run `./script.sh`, the system may fall back to whatever the current shell is, which can behave differently (for example `sh` vs `bash`). Being explicit with a shebang makes scripts portable and predictable — which matters a lot in CI/CD pipelines.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've taken your first step into Linux automation. Every modern DevOps pipeline relies on scripts to automate deployments, backups, and monitoring.
+
+<NextLesson
+  title="Linux Networking"
+  href="/ultimate-devops-learning-hub/linux/networking"
+/>

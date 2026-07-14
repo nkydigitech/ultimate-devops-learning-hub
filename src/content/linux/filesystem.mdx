@@ -1,0 +1,166 @@
+---
+title: "Linux Filesystem"
+description: "Understand how Linux organizes everything into a single directory tree — and where DevOps engineers look first."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Linux Filesystem"
+  description="Learn the Linux directory hierarchy and the purpose of the folders you'll touch every day."
+  timeToRead="11 min"
+  icon="📂"
+/>
+
+One of the biggest differences between Windows and Linux is how files are organized. Windows uses drive letters like `C:\` and `D:\`. Linux has no drive letters — **everything grows from a single root directory** called `/`. Think of it as the top of a giant tree.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand the Linux filesystem hierarchy
+- Know the purpose of the most important directories
+- Navigate between directories
+- Find where configuration files and logs live
+
+---
+
+# The Linux Directory Tree
+
+Every Linux system — Ubuntu, Debian, CentOS, Amazon Linux — follows this structure:
+
+<CommandBlock command={`/
+├── bin     # essential commands (ls, cp, mv)
+├── boot    # boot loader files
+├── dev     # device files
+├── etc     # configuration files
+├── home    # user home directories
+├── lib     # shared libraries
+├── opt     # optional / third-party software
+├── proc    # kernel & process info (virtual)
+├── root    # the root user's home
+├── tmp     # temporary files
+├── usr     # installed software
+└── var     # logs and changing data`} language="text" />
+
+---
+
+# The Directories That Matter Most
+
+| Directory | Purpose |
+|-----------|---------|
+| `/` | The root — everything starts here |
+| `/home` | Personal user folders (`/home/student`) |
+| `/etc` | Configuration files (`/etc/hosts`, `/etc/passwd`) |
+| `/var` | Changing data — logs, cache, databases (`/var/log`) |
+| `/tmp` | Temporary files (may be auto-cleaned) |
+| `/usr` | Installed software and applications |
+| `/bin` | Essential commands like `ls`, `cp`, `cat` |
+| `/root` | The **root user's** home — *not* the same as `/` |
+
+<Warning title="/ is not /root">
+`/` is the top of the entire filesystem. `/root` is just the home directory of the root (admin) user. They look similar but are completely different places.
+</Warning>
+
+---
+
+# Moving Around the Tree
+
+<CommandBlock command={`cd            # go to your home directory
+cd /          # go to the root directory
+cd /var/log   # jump to the log directory
+ls /etc       # list configuration files
+ls ~          # list your home folder`} />
+
+---
+
+# Real DevOps Example
+
+When a web server stops working, a DevOps engineer usually starts by reading the logs:
+
+<Terminal
+  command="cd /var/log && ls && tail syslog"
+  output={`auth.log  dpkg.log  nginx  syslog
+Jul 12 10:31:02 web01 systemd[1]: Started Daily apt upgrade.
+Jul 12 10:31:05 web01 nginx[812]: signal process started`}
+/>
+
+Many production problems are diagnosed simply by reading `/var/log`.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Explore the Filesystem">
+  <div slot="tasks">
+    1. Display your current directory
+    2. Go to the root directory and list its contents
+    3. Return to your home directory
+    4. Display the contents of `/etc`
+    5. Display the contents of `/var/log`
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="pwd && cd / && ls && cd && ls /etc && ls /var/log"
+      output={`/home/student
+bin  boot  dev  etc  home  lib  root  tmp  usr  var
+hostname  hosts  passwd  ssh
+auth.log  nginx  syslog`}
+    />
+  </div>
+</Exercise>
+
+<Tip title="DevOps Tip">
+You don't need to memorize every directory — just remember the purpose of the important ones: `/home`, `/etc`, `/var`, `/tmp`, `/usr`, `/bin`.
+</Tip>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which directory stores configuration files?"
+  options={["/home", "/etc", "/tmp", "/bin"]}
+  answer={1}
+  explanation="/etc holds system-wide configuration files such as /etc/hosts and /etc/passwd. DevOps engineers work here almost daily."
+/>
+
+<Quiz
+  question="Where are system logs usually stored?"
+  options={["/bin", "/var/log", "/home", "/usr"]}
+  answer={1}
+  explanation="/var holds changing data, and /var/log is where system and application logs are written."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What is the Filesystem Hierarchy Standard (FHS) and why does it matter?">
+  The **FHS** is a standard that defines the directory structure and the purpose of each directory on Linux systems.
+
+  It matters because it means a script or engineer can rely on configuration being in `/etc`, logs in `/var/log`, and binaries in `/bin` or `/usr/bin` — regardless of which distribution is running. This consistency is what makes automation and troubleshooting portable across servers.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand the Linux filesystem hierarchy — essential for troubleshooting servers, configuring applications, and working with cloud infrastructure.
+
+<NextLesson
+  title="Linux Permissions"
+  href="/ultimate-devops-learning-hub/linux/permissions"
+/>
