@@ -1,0 +1,181 @@
+---
+title: "Introduction to Docker"
+description: "Understand containers, how they differ from virtual machines, and why Docker changed how software is shipped."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Docker"
+  description="The tool that ended 'but it works on my machine' forever."
+  timeToRead="9 min"
+  icon="🐳"
+  section="Docker"
+  sectionUrl="/docker/introduction"
+/>
+
+Before Docker, moving an app from a developer's laptop to a production server was painful — different OS versions, missing libraries, mismatched configs. **Docker** packages your app *and everything it needs* into a single, portable unit called a **container** that runs the same way everywhere.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what a container is
+- Know how containers differ from virtual machines
+- Understand the core Docker concepts: image, container, registry
+- Run your first container
+
+---
+
+# What is a Container?
+
+A **container** is a lightweight, isolated environment that holds your application plus its dependencies (libraries, runtime, config). It shares the host's operating system kernel but runs as if it had its own private machine.
+
+<Tip title="The lunchbox analogy">
+A container is like a sealed lunchbox: whatever you pack (your app + dependencies) travels together and arrives exactly as you packed it — no matter whose fridge (server) you put it in.
+</Tip>
+
+---
+
+# Containers vs Virtual Machines
+
+Both isolate workloads, but they work very differently:
+
+| | **Container** | **Virtual Machine** |
+|---|---------------|---------------------|
+| Contains | App + dependencies | A full guest OS + app |
+| Size | Megabytes | Gigabytes |
+| Startup | Seconds or less | Minutes |
+| Isolation | Process-level (shares host kernel) | Full OS-level |
+| Density | Hundreds per host | A handful per host |
+
+<CommandBlock command={`VM:         [App][Guest OS] [App][Guest OS]   ← heavy
+             \\_____ Hypervisor _____/
+
+Container:  [App][App][App][App]             ← light
+             \\_____ Docker Engine ___/
+             \\_______ Host OS _______/`} language="text" />
+
+Containers are lighter and faster because they skip the extra guest operating system.
+
+---
+
+# The Three Core Concepts
+
+| Concept | What it is |
+|---------|------------|
+| **Image** | A read-only template/blueprint (your app packaged up) |
+| **Container** | A running instance of an image |
+| **Registry** | A store for images (e.g. Docker Hub) |
+
+The relationship, in one line: you **pull** an image from a registry and **run** it to create a container.
+
+<CommandBlock command={`Registry ──pull──▶ Image ──run──▶ Container`} language="text" />
+
+---
+
+# Run Your First Container
+
+Docker Hub has a tiny test image called `hello-world`:
+
+<CommandBlock command={`docker --version              # check Docker is installed
+docker run hello-world        # pull + run a test container`} />
+
+<Terminal
+  command="docker run hello-world"
+  output={`Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+Status: Downloaded newer image for hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.`}
+/>
+
+Docker couldn't find the image locally, so it **pulled** it from the registry, then **ran** it as a container. That's the whole loop.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Run and Inspect a Real Container">
+  <div slot="tasks">
+    1. Run an Nginx web server container in the background on port 8080
+    2. List the running containers
+    3. Confirm it responds, then stop it
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="docker run -d -p 8080:80 nginx && docker ps"
+      output={`a1b2c3d4e5f6
+CONTAINER ID   IMAGE   COMMAND                  PORTS                  NAMES
+a1b2c3d4e5f6   nginx   "/docker-entrypoint.…"   0.0.0.0:8080->80/tcp   brave_kepler`}
+    />
+    `-d` runs it detached (in the background); `-p 8080:80` maps host port 8080 to the container's port 80. Stop it with `docker stop a1b2c3d4e5f6`.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the main difference between a container and a virtual machine?"
+  options={[
+    "Containers are always slower",
+    "A container shares the host OS kernel, while a VM includes a full guest OS",
+    "VMs cannot run applications",
+    "There is no difference"
+  ]}
+  answer={1}
+  explanation="Containers share the host kernel and package only the app plus dependencies, making them far lighter and faster than VMs, which each carry a full guest operating system."
+/>
+
+<Quiz
+  question="What is the relationship between an image and a container?"
+  options={[
+    "They are the same thing",
+    "A container is a running instance of an image",
+    "An image is a running container",
+    "A registry runs containers"
+  ]}
+  answer={1}
+  explanation="An image is the read-only blueprint. When you run an image, Docker creates a container — a live, running instance of that image."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why did Docker become so important for DevOps?">
+  Docker solved a problem that slowed every team down:
+
+  - **Consistency:** the container runs identically on a laptop, a CI server, and production — killing "works on my machine" bugs.
+  - **Speed:** containers start in seconds, making CI/CD pipelines and autoscaling fast.
+  - **Efficiency:** many containers pack onto one host, using resources better than VMs.
+  - **Portability:** the same image runs on any machine with Docker, on any cloud.
+
+  Docker also became the packaging standard that Kubernetes and modern deployment build upon.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand containers, how they differ from VMs, and the image → container → registry model. Next, you'll work hands-on with images and containers and learn the everyday Docker commands.
+
+<NextLesson
+  title="Images & Containers in Practice"
+  href="/ultimate-devops-learning-hub/docker/images-and-containers"
+/>

@@ -1,0 +1,232 @@
+---
+title: "Building a CI Pipeline"
+description: "Assemble a complete continuous-integration pipeline that checks out, installs, lints, tests, and builds a real application on every push."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Building a CI Pipeline"
+  description="Put the pieces together into a real pipeline that guards your main branch."
+  timeToRead="11 min"
+  icon="⚙️"
+  section="GitHub Actions"
+  sectionUrl="/github-actions/introduction"
+/>
+
+You know the pieces — now let's build a real **CI pipeline**: the automated gate that every change must pass before it can be merged. This is the workflow that keeps a codebase healthy.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Design a complete CI pipeline for an app
+- Order steps logically: install → lint → test → build
+- Upload build artifacts
+- Enforce the pipeline as a required check
+
+---
+
+# What a CI Pipeline Should Do
+
+A good CI pipeline runs on every push and pull request and answers one question: *is this change safe to merge?* It typically:
+
+1. **Checks out** the code
+2. **Installs** dependencies (cached)
+3. **Lints** for style and obvious errors
+4. **Tests** the code
+5. **Builds** the production artifact
+6. **Uploads** the artifact for later use
+
+<Tip title="Fail fast, cheapest first">
+Order steps so the quickest checks run first. Linting fails in seconds; a full test suite takes minutes. Putting lint before tests means an obvious mistake stops the pipeline early, saving time and runner minutes.
+</Tip>
+
+---
+
+# A Complete CI Workflow
+
+<CommandBlock command={`name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/`} language="yaml" />
+
+Each step is named so the Actions UI reads clearly. `npm ci` (not `npm install`) gives clean, reproducible installs from the lockfile — the right choice for CI.
+
+<Terminal
+  command="# The run summary in the Actions tab:"
+  output={`✓ Check out code            2s
+✓ Set up Node               4s
+✓ Install dependencies      11s
+✓ Lint                      3s
+✓ Test                      18s
+✓ Build                     9s
+✓ Upload build output       2s`}
+/>
+
+---
+
+# Artifacts — Keeping the Output
+
+The build step produces a `dist/` folder. Uploading it as an **artifact** means you can download it from the run, or hand it to a deploy job later:
+
+<CommandBlock command={`- uses: actions/upload-artifact@v4
+  with:
+    name: dist
+    path: dist/
+    retention-days: 7`} language="yaml" />
+
+<Warning title="npm ci vs npm install in CI">
+Always use `npm ci` in pipelines. It installs exactly what's in `package-lock.json` and fails if the lockfile is out of sync — giving you reproducible builds. `npm install` can silently update the lockfile, causing "works locally, fails in CI" surprises.
+</Warning>
+
+---
+
+# Making It a Required Check
+
+A pipeline only protects you if it *blocks* bad merges. In the repository's branch protection settings, mark the CI workflow as a **required status check** on `main`.
+
+Now a pull request cannot be merged until CI passes:
+
+<CommandBlock command={`Pull request  →  CI runs  →  ✓ green  →  merge allowed
+                          →  ✗ red    →  merge blocked`} language="text" />
+
+<Tip title="This is the heart of CI">
+Branch protection + a required CI check is what actually keeps `main` deployable. Without it, the pipeline is just advisory — people can merge over a red build.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Design a CI Pipeline">
+  <div slot="tasks">
+    1. Write a CI workflow that runs on pushes and PRs to `main`
+    2. Include install (cached), lint, test, and build steps in the right order
+    3. Upload the build output as an artifact
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`name: CI
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: dist/ }`} language="yaml" />
+    Mark this workflow as a required check in branch protection so it gates every merge.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why should linting run before the full test suite in a CI pipeline?"
+  options={[
+    "Linting is more important than testing",
+    "Cheaper, faster checks first means obvious errors fail fast and save time",
+    "Tests can't run after linting",
+    "It has no effect on order"
+  ]}
+  answer={1}
+  explanation="Fail fast: quick checks like linting catch obvious problems in seconds, stopping the pipeline before the slower test and build steps run."
+/>
+
+<Quiz
+  question="What makes a CI pipeline actually prevent broken code from reaching main?"
+  options={[
+    "Naming the steps clearly",
+    "Marking the workflow as a required status check with branch protection",
+    "Running it only on schedule",
+    "Uploading artifacts"
+  ]}
+  answer={1}
+  explanation="A pipeline only enforces quality when it's a required check under branch protection, which blocks merges until it passes. Otherwise it's advisory."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Walk me through a CI pipeline you would build for a web application.">
+  A clear, ordered answer shows real understanding:
+
+  1. **Trigger** on push and pull_request to main.
+  2. **Checkout** the code.
+  3. **Set up the runtime** (Node/Python/etc.) with dependency caching for speed.
+  4. **Install** with a reproducible command (`npm ci`).
+  5. **Lint** first — fast feedback on style and obvious errors.
+  6. **Test** — unit and integration tests.
+  7. **Build** the production artifact.
+  8. **Upload the artifact** for the deploy stage.
+  9. **Enforce** it as a required check via branch protection.
+
+  I'd also add a matrix for multiple runtime versions if the app must support them, and keep secrets out of the workflow using GitHub Secrets — which is exactly the deployment topic next.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've built a complete CI pipeline: checkout, cached install, lint, test, build, and artifact upload — enforced as a required check. Next, you'll safely add deployment using secrets and environments to reach true CD.
+
+<NextLesson
+  title="Secrets & Deployment"
+  href="/ultimate-devops-learning-hub/github-actions/secrets-and-deployment"
+/>

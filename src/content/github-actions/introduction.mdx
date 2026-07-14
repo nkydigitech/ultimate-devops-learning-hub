@@ -1,0 +1,206 @@
+---
+title: "Introduction to GitHub Actions"
+description: "Understand CI/CD and how GitHub Actions automates building, testing, and deploying your code directly from your repository."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to GitHub Actions"
+  description="Automate your build, test, and deploy — without leaving GitHub."
+  timeToRead="9 min"
+  icon="⚙️"
+  section="GitHub Actions"
+  sectionUrl="/github-actions/introduction"
+/>
+
+Every time you push code, a series of checks *should* run: build it, test it, maybe deploy it. Doing that by hand is slow and easy to forget. **GitHub Actions** automates it — running your pipeline automatically on every push, directly inside your repository. This is **CI/CD**.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what CI/CD means
+- Know what GitHub Actions is and how it fits in
+- Understand the core concepts: workflow, event, job, step, runner
+- Recognise a workflow file when you see one
+
+---
+
+# What is CI/CD?
+
+| Term | Meaning |
+|------|---------|
+| **CI** — Continuous Integration | Automatically build and test every change as it's merged |
+| **CD** — Continuous Delivery/Deployment | Automatically release that tested change to an environment |
+
+The goal: catch problems early and ship reliably, without manual, error-prone steps.
+
+<Tip title="The one-line version">
+CI/CD is a robot that builds, tests, and ships your code every time you push — so humans don't have to remember to.
+</Tip>
+
+---
+
+# What is GitHub Actions?
+
+GitHub Actions is GitHub's built-in automation platform. You describe a **workflow** in a YAML file inside your repo, and GitHub runs it automatically when chosen events happen — a push, a pull request, a schedule, and more.
+
+Because it lives *in* your repo, there's nothing extra to host — GitHub provides the machines (**runners**) that execute your workflows.
+
+---
+
+# The Core Concepts
+
+<CommandBlock command={`Event (push)  ──triggers──▶  Workflow
+                              └─ Job (runs on a runner)
+                                   └─ Step 1: checkout code
+                                   └─ Step 2: install deps
+                                   └─ Step 3: run tests`} language="text" />
+
+| Concept | What it is |
+|---------|------------|
+| **Workflow** | The whole automated process (one YAML file) |
+| **Event** | What triggers it (push, pull_request, schedule) |
+| **Job** | A set of steps that run on one runner |
+| **Step** | A single task (run a command or use an action) |
+| **Runner** | The machine that executes a job |
+| **Action** | A reusable, pre-built step you can drop in |
+
+---
+
+# Where Workflows Live
+
+Workflow files go in a special folder: `.github/workflows/`. A minimal one:
+
+<CommandBlock command={`# .github/workflows/hello.yml
+name: Hello
+on: push
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hello from GitHub Actions!"`} language="yaml" />
+
+Push this file, and GitHub runs the job automatically. You'll see the result under the repo's **Actions** tab.
+
+<Terminal
+  command="git add .github/workflows/hello.yml && git commit -m 'add workflow' && git push"
+  output={`[main 3a9f1c2] add workflow
+ 1 file changed, 8 insertions(+)
+To github.com:you/repo.git
+   e4b2a1f..3a9f1c2  main -> main`}
+/>
+
+---
+
+# The Marketplace Advantage
+
+You rarely start from scratch. The **GitHub Marketplace** has thousands of pre-built actions — checkout code, set up Node/Python, cache dependencies, deploy to a cloud — that you reference with `uses:`.
+
+<CommandBlock command={`steps:
+  - uses: actions/checkout@v4        # check out your repo
+  - uses: actions/setup-node@v4      # install Node.js
+    with:
+      node-version: 20`} language="yaml" />
+
+<Tip title="uses vs run">
+`run:` executes a shell command. `uses:` pulls in a reusable action someone already built. Combining them is how you assemble powerful pipelines quickly.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Create Your First Workflow">
+  <div slot="tasks">
+    1. Add a workflow file at `.github/workflows/ci.yml` triggered on `push`
+    2. Add a job that checks out the code and prints the repository contents
+    3. Push it and check the Actions tab for a green run
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`name: CI
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ls -la`} language="yaml" />
+    <Terminal
+      command="# In the Actions tab after pushing:"
+      output={`✓ CI · build
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Run ls -la
+  ✓ Complete job`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What does Continuous Integration (CI) primarily do?"
+  options={[
+    "Deploys code to production automatically",
+    "Automatically builds and tests every change as it's integrated",
+    "Writes the code for you",
+    "Replaces Git"
+  ]}
+  answer={1}
+  explanation="CI automatically builds and tests changes as they're merged, catching problems early. CD then handles delivering/deploying those tested changes."
+/>
+
+<Quiz
+  question="Where must GitHub Actions workflow files be placed?"
+  options={[
+    "In the repository root",
+    "In .github/workflows/",
+    "In /actions/",
+    "Anywhere in the repo"
+  ]}
+  answer={1}
+  explanation="Workflow YAML files must live in the .github/workflows/ directory for GitHub to detect and run them."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What are the benefits of CI/CD, and how does GitHub Actions provide it?">
+  CI/CD delivers software faster and more safely:
+
+  - **Early bug detection:** tests run on every change, so problems surface immediately.
+  - **Consistency:** the same automated steps run every time, removing human error.
+  - **Faster releases:** shipping becomes routine and low-risk instead of a big, scary event.
+  - **Confidence:** a green pipeline means the change passed all checks.
+
+  GitHub Actions provides this natively inside the repository — triggered by Git events, executed on GitHub-hosted runners, and assembled from reusable Marketplace actions. There's no separate CI server to maintain, which is why it's so widely adopted.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand CI/CD, what GitHub Actions is, and its core building blocks: workflows, events, jobs, steps, and runners. Next, you'll break down the anatomy of a workflow file in detail.
+
+<NextLesson
+  title="Workflow Anatomy"
+  href="/ultimate-devops-learning-hub/github-actions/workflow-basics"
+/>
