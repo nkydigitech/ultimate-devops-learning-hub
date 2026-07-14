@@ -1,0 +1,174 @@
+---
+title: "Linux Permissions"
+description: "Master how Linux controls who can read, write, and execute files — one of its most important security features."
+order: 5
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Linux Permissions"
+  description="Read, understand, and change file permissions and ownership — a skill DevOps engineers use every day."
+  timeToRead="12 min"
+  icon="🔒"
+/>
+
+One of the biggest reasons Linux is trusted to run the world's servers is its powerful permission system. Permissions decide **who can read, modify, and execute** each file. Without them, any user could change or delete critical system files.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand users and groups
+- Read Linux permission strings
+- Change permissions with `chmod`
+- Change ownership with `chown`
+- Understand why permissions matter in DevOps
+
+---
+
+# Reading Permissions
+
+Run `ls -l` and you'll see a permission string at the start of each line:
+
+<Terminal
+  command="ls -l notes.txt"
+  output="-rw-r--r-- 1 student student 1250 Jul 12 10:00 notes.txt"
+/>
+
+That string breaks down into three groups of three:
+
+<CommandBlock command={`-  rw-  r--  r--
+│   │    │    └── Others : read
+│   │    └─────── Group  : read
+│   └──────────── Owner  : read + write
+└──────────────── file type ( - = file, d = directory )
+
+r = read    w = write    x = execute`} language="text" />
+
+---
+
+# Changing Permissions with chmod
+
+Make a script executable:
+
+<CommandBlock command={`chmod +x deploy.sh   # add execute permission
+chmod -x deploy.sh   # remove execute permission`} />
+
+After `chmod +x`, the permission string gains an **x**: `-rwxr-xr-x`.
+
+## Numeric (octal) permissions
+
+Linux also lets you set permissions with numbers — `read = 4`, `write = 2`, `execute = 1`, added together per group:
+
+| Number | Permission | Meaning |
+|--------|-----------|---------|
+| 7 | `rwx` | read + write + execute |
+| 6 | `rw-` | read + write |
+| 5 | `r-x` | read + execute |
+| 4 | `r--` | read only |
+
+The most common command you'll type:
+
+<CommandBlock command="chmod 755 deploy.sh   # owner: rwx, group: r-x, others: r-x" />
+
+---
+
+# Changing Ownership with chown
+
+The first two names in `ls -l` are the **owner** and the **group**. To change ownership:
+
+<CommandBlock command="sudo chown ubuntu deploy.sh   # make 'ubuntu' the owner" />
+
+---
+
+# Real DevOps Example
+
+A deployment script that isn't executable fails with a clear error — and the fix is one command:
+
+<Terminal
+  command="./deploy.sh"
+  output={`bash: ./deploy.sh: Permission denied
+# fix it:
+$ chmod +x deploy.sh && ./deploy.sh
+Deploying application... done.`}
+/>
+
+This is something DevOps engineers do regularly.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Make a Script Executable">
+  <div slot="tasks">
+    1. Create a file named `test.sh`
+    2. Check its permissions with `ls -l`
+    3. Add execute permission with `chmod +x`
+    4. Check the permissions again — notice the `x` appear
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="touch test.sh && ls -l test.sh && chmod +x test.sh && ls -l test.sh"
+      output={`-rw-r--r-- 1 student student 0 Jul 12 10:00 test.sh
+-rwxr-xr-x 1 student student 0 Jul 12 10:00 test.sh`}
+    />
+  </div>
+</Exercise>
+
+<Warning title="Never chmod 777 everything">
+`chmod 777` gives **everyone** full read/write/execute access. It's a common beginner shortcut and a serious security risk. Follow the principle of least privilege — grant only the access actually needed.
+</Warning>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which command changes a file's permissions?"
+  options={["chown", "chmod", "pwd", "touch"]}
+  answer={1}
+  explanation="chmod (change mode) sets read/write/execute permissions. chown changes ownership."
+/>
+
+<Quiz
+  question="What access does chmod 755 grant to the file's owner?"
+  options={["read only", "read + write", "read + write + execute", "no access"]}
+  answer={2}
+  explanation="7 = rwx for the owner. The group and others get 5 = r-x (read + execute)."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Explain what chmod 644 and chmod 755 mean and when you'd use each.">
+  Permissions are three digits — owner, group, others — where `4=read`, `2=write`, `1=execute`.
+
+  - **644** = `rw-r--r--`: owner can read/write, everyone else can only read. Ideal for **regular files** like configs, HTML, or text.
+  - **755** = `rwxr-xr-x`: owner can read/write/execute, everyone else can read/execute. Ideal for **scripts, executables, and directories** that others need to run or enter.
+
+  A good rule: `644` for data files, `755` for programs and folders.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand one of Linux's most important security features. Every DevOps engineer works with `chmod`, `chown`, and permission strings almost daily.
+
+<NextLesson
+  title="Bash and Shell Scripting"
+  href="/ultimate-devops-learning-hub/linux/bash"
+/>

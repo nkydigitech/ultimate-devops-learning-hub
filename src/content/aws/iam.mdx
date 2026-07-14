@@ -1,0 +1,177 @@
+---
+title: "AWS IAM — Users, Roles & Permissions"
+description: "Control who can do what in AWS using Identity and Access Management — the foundation of cloud security."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="AWS IAM — Users, Roles & Permissions"
+  description="Who can do what, to which resources — the control system behind every secure AWS account."
+  timeToRead="12 min"
+  icon="🔐"
+  section="AWS"
+  sectionUrl="/aws/introduction"
+/>
+
+**IAM (Identity and Access Management)** is how AWS decides *who* is allowed to do *what*. Get IAM right and your account is secure; get it wrong and you've handed the keys to attackers. It's free, and it's the first thing to master in any cloud.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand IAM users, groups, roles, and policies
+- Apply the principle of least privilege
+- Understand why roles beat long-lived keys
+- Configure the AWS CLI
+
+---
+
+# The Four IAM Building Blocks
+
+| Concept | What it is |
+|---------|-----------|
+| **User** | A person or app with long-term credentials |
+| **Group** | A collection of users sharing permissions (e.g. `Developers`) |
+| **Policy** | A JSON document that grants or denies specific actions |
+| **Role** | A set of permissions that can be *assumed* temporarily — by a user, service, or EC2 instance |
+
+---
+
+# Policies: the Rules Themselves
+
+A policy is JSON that says which **actions** are allowed on which **resources**:
+
+<CommandBlock command={`{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["s3:GetObject", "s3:ListBucket"],
+    "Resource": "arn:aws:s3:::my-app-bucket/*"
+  }]
+}`} language="json" />
+
+This policy allows **reading** objects from one specific bucket — and nothing else.
+
+<Tip title="Principle of Least Privilege">
+Grant only the permissions actually needed to do the job — no more. Start with nothing and add access as required, rather than granting broad access and hoping to lock it down later.
+</Tip>
+
+---
+
+# Roles Beat Long-Lived Keys
+
+A common mistake is storing an access key on a server. Instead, attach an **IAM role** to the EC2 instance — AWS then hands it short-lived, auto-rotating credentials.
+
+<Warning title="Never do this">
+Never hard-code AWS access keys in your code, commit them to Git, or bake them into an EC2 instance. Leaked keys are one of the most common causes of cloud breaches. Use **roles** for services and **short-lived credentials** for humans.
+</Warning>
+
+---
+
+# Configure the AWS CLI
+
+<CommandBlock command={`aws configure
+# AWS Access Key ID:     ****************
+# AWS Secret Access Key: ****************
+# Default region name:   eu-west-1
+# Default output format: json`} />
+
+<Terminal
+  command="aws sts get-caller-identity"
+  output={`{
+  "UserId": "AIDA...EXAMPLE",
+  "Account": "123456789012",
+  "Arn": "arn:aws:iam::123456789012:user/ada"
+}`}
+/>
+
+`aws sts get-caller-identity` is the "whoami" of AWS — it confirms which identity your CLI is using.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Create a Least-Privilege User">
+  <div slot="tasks">
+    In the AWS Console:
+
+    1. Enable **MFA** on your root account (then stop using root for daily work).
+    2. Create an IAM **group** called `Developers`.
+    3. Attach a policy that grants only what's needed (e.g. read-only S3).
+    4. Create a **user**, add them to the group, and test with the CLI.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="aws iam list-groups-for-user --user-name ada"
+      output={`{
+  "Groups": [
+    { "GroupName": "Developers", "Arn": "arn:aws:iam::123456789012:group/Developers" }
+  ]
+}`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the principle of least privilege?"
+  options={[
+    "Give everyone admin access to avoid blockers",
+    "Grant only the minimum permissions required to perform a task",
+    "Only the root user should have any access",
+    "Disable IAM entirely"
+  ]}
+  answer={1}
+  explanation="Least privilege means granting only the permissions genuinely needed — reducing the damage a mistake or a compromised credential can cause."
+/>
+
+<Quiz
+  question="How should an EC2 instance access an S3 bucket securely?"
+  options={[
+    "Store an access key in the code",
+    "Attach an IAM role to the instance",
+    "Use the root account credentials",
+    "Make the bucket public"
+  ]}
+  answer={1}
+  explanation="An IAM role attached to the instance provides temporary, automatically-rotated credentials — far safer than embedding long-lived keys."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why are IAM roles preferred over IAM user access keys for applications?">
+  IAM **roles** provide **temporary, automatically-rotated credentials** that AWS delivers to a service (like EC2, Lambda, or ECS) on demand. There's no long-lived secret to store, leak, or manually rotate.
+
+  IAM **user access keys** are long-lived static secrets. If one is committed to Git or left on a server, it can be stolen and used indefinitely until someone notices and revokes it.
+
+  So for any application or AWS service that needs access, best practice is to assign a role scoped with least privilege — the app never sees a permanent key at all.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand IAM users, groups, roles, and policies, the principle of least privilege, and why roles beat static keys. Next, you'll launch your first virtual server with **EC2**.
+
+<NextLesson
+  title="AWS EC2 — Virtual Servers"
+  href="/ultimate-devops-learning-hub/aws/ec2"
+/>

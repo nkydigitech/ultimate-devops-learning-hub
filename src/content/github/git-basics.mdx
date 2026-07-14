@@ -1,0 +1,169 @@
+---
+title: "Git Basics — Your First Repository"
+description: "Create a repository, stage and commit changes, read the log, and push your first project to GitHub."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Git Basics — Your First Repository"
+  description="The everyday Git commands: init, status, add, commit, log, and push."
+  timeToRead="12 min"
+  icon="📦"
+  section="GitHub"
+  sectionUrl="/github/introduction"
+/>
+
+Time to use Git for real. In this lesson you'll create a repository, save snapshots of your work, and push it to GitHub.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Initialise a Git repository
+- Check status and stage changes
+- Commit snapshots with good messages
+- Read the commit history
+- Connect a repo to GitHub and push
+
+---
+
+# Create a Repository
+
+<CommandBlock command={`mkdir my-project && cd my-project
+git init`} />
+
+`git init` creates a hidden `.git` folder — that's where Git stores your entire history.
+
+---
+
+# The status → add → commit Cycle
+
+Create a file, then check what Git sees:
+
+<Terminal
+  command="echo '# My Project' > README.md && git status"
+  output={`On branch main
+No commits yet
+
+Untracked files:
+  README.md`}
+/>
+
+**Stage** the change, then **commit** it as a snapshot:
+
+<CommandBlock command={`git add README.md          # stage one file
+git add .                  # or stage everything
+git commit -m "Add project README"`} />
+
+<Warning title="Write meaningful commit messages">
+`git commit -m "stuff"` helps no one. Describe *what changed and why*: `"Fix login redirect on expired session"`. Your future self and your teammates read these constantly.
+</Warning>
+
+---
+
+# Read the History
+
+<CommandBlock command={`git log              # full history
+git log --oneline    # compact, one line per commit`} />
+
+<Terminal
+  command="git log --oneline"
+  output={`a1b2c3d Add project README
+9f8e7d6 Initial commit`}
+/>
+
+---
+
+# Push to GitHub
+
+Create an empty repository on GitHub, then connect and push:
+
+<CommandBlock command={`git remote add origin https://github.com/your-user/my-project.git
+git branch -M main
+git push -u origin main`} />
+
+After the first `push -u`, future uploads are just `git push`.
+
+<Tip title="Use SSH to skip password prompts">
+Remember the SSH keys from the Linux section? Add your public key to GitHub (Settings → SSH keys) and use the SSH remote `git@github.com:your-user/my-project.git` to push without typing credentials.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Create and Commit a Repository">
+  <div slot="tasks">
+    1. Create a folder `git-lab` and run `git init`
+    2. Create a `README.md` file
+    3. Stage and commit it with a clear message
+    4. View the history with `git log --oneline`
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="mkdir git-lab && cd git-lab && git init -q && echo '# Git Lab' > README.md && git add . && git commit -q -m 'Add README' && git log --oneline"
+      output="c0ffee1 Add README"
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which command turns a normal folder into a Git repository?"
+  options={["git start", "git init", "git new", "git create"]}
+  answer={1}
+  explanation="git init creates the hidden .git directory that turns the folder into a Git repository."
+/>
+
+<Quiz
+  question="What is the correct order to save and share a change?"
+  options={[
+    "commit → add → push",
+    "add → commit → push",
+    "push → add → commit",
+    "add → push → commit"
+  ]}
+  answer={1}
+  explanation="You stage with git add, snapshot with git commit, then upload with git push."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What is the difference between the working directory, the staging area, and the repository?">
+  Git has three main areas:
+
+  - **Working directory** — the actual files you edit on disk.
+  - **Staging area (index)** — a holding zone where you assemble exactly which changes go into the next commit (`git add`).
+  - **Repository** — the committed history stored in `.git` (`git commit`).
+
+  The staging area is what makes Git powerful: you can commit only part of your changes, crafting clean, logical commits instead of dumping everything at once.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You created a repo, staged and committed changes, read the log, and pushed to GitHub. These commands are the ones you'll run dozens of times a day.
+
+<NextLesson
+  title="Branching & Pull Requests"
+  href="/ultimate-devops-learning-hub/github/branching-pull-requests"
+/>

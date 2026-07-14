@@ -1,0 +1,176 @@
+---
+title: "Branching & Pull Requests"
+description: "Work in parallel safely with branches, merge changes, resolve conflicts, and collaborate through pull requests."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Branching & Pull Requests"
+  description="How real teams ship code together — branches, merges, conflicts, and the pull request workflow."
+  timeToRead="13 min"
+  icon="🌿"
+  section="GitHub"
+  sectionUrl="/github/introduction"
+/>
+
+Branches are Git's superpower. They let you work on a new feature or fix **without touching the stable code** everyone else depends on. This is how entire teams work on one project at the same time.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Create and switch between branches
+- Merge branches back together
+- Understand and resolve a merge conflict
+- Collaborate using pull requests on GitHub
+
+---
+
+# Working with Branches
+
+<CommandBlock command={`git branch                     # list branches
+git switch -c feature-login    # create + switch to a new branch
+git switch main                # switch back to main`} />
+
+<Terminal
+  command="git switch -c feature-login"
+  output="Switched to a new branch 'feature-login'"
+/>
+
+Think of `main` as the trusted, always-working version. You build on a branch, then merge it back when it's ready.
+
+---
+
+# Merging
+
+Once your feature works, merge it into `main`:
+
+<CommandBlock command={`git switch main
+git merge feature-login`} />
+
+If no one else changed the same lines, Git merges cleanly.
+
+---
+
+# Resolving a Merge Conflict
+
+A **conflict** happens when two branches change the same lines. Git pauses and marks the file:
+
+<CommandBlock command={`<<<<<<< HEAD
+Welcome to our app!
+=======
+Welcome to the DevOps Hub!
+>>>>>>> feature-login`} language="text" />
+
+Edit the file to keep what you want, remove the `<<<`, `===`, `>>>` markers, then:
+
+<CommandBlock command={`git add index.html
+git commit -m "Resolve merge conflict in index.html"`} />
+
+<Warning title="Conflicts are normal">
+A merge conflict is not an error or a bug — it just means Git needs a human to decide which change wins. Read both sides carefully before resolving.
+</Warning>
+
+---
+
+# The Pull Request Workflow
+
+On a team you rarely merge straight into `main`. Instead:
+
+<CommandBlock command={`git switch -c feature-login
+# ... make changes, commit ...
+git push -u origin feature-login`} language="text" />
+
+Then on GitHub you open a **Pull Request (PR)** — a request to merge your branch into `main`. A PR lets teammates **review the code, comment, and approve** before it's merged, and it's what usually triggers your CI/CD pipeline.
+
+<Tip title="You already saw a PR">
+The fix for this very learning hub was delivered as a pull request rather than a direct push — exactly so the changes could be reviewed before going live. That's the workflow in action.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Branch, Change, and Merge">
+  <div slot="tasks">
+    1. From `main`, create a branch `feature-x` and switch to it
+    2. Add a line to `README.md` and commit it
+    3. Switch back to `main` and merge `feature-x`
+    4. Confirm the change is now on `main`
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="git switch -c feature-x && echo 'New feature' >> README.md && git commit -aqm 'Add feature note' && git switch main && git merge feature-x"
+      output={`Switched to a new branch 'feature-x'
+Switched to branch 'main'
+Updating a1b2c3d..d4e5f6g
+Fast-forward
+ README.md | 1 +`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why do teams use branches?"
+  options={[
+    "To make Git run faster",
+    "To work on new features without affecting the stable main code",
+    "To delete old commits",
+    "Branches are required to commit"
+  ]}
+  answer={1}
+  explanation="Branches isolate work in progress so multiple people can develop features and fixes in parallel without breaking main."
+/>
+
+<Quiz
+  question="What is a Pull Request?"
+  options={[
+    "A command that downloads code",
+    "A request to merge one branch into another, allowing review before merging",
+    "A way to delete a branch",
+    "Another name for git pull"
+  ]}
+  answer={1}
+  explanation="A pull request proposes merging your branch into another (usually main) and enables code review, discussion, and CI checks before the merge."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What's the difference between git merge and git rebase?">
+  Both integrate changes from one branch into another, but differently:
+
+  - **Merge** creates a new "merge commit" that ties the two histories together. History is preserved exactly as it happened — non-destructive but can look tangled.
+  - **Rebase** replays your branch's commits on top of the target branch, producing a linear history as if you'd branched from the latest `main`. Cleaner, but it rewrites commit hashes.
+
+  Common rule of thumb: **rebase** your local feature branch to keep it tidy before merging, but **never rebase** commits that others have already pulled, because rewriting shared history breaks their copies.
+</InterviewPrep>
+
+---
+
+# 🎉 Section Complete
+
+You can now branch, merge, resolve conflicts, and collaborate through pull requests — the daily workflow of every DevOps team. Next we head into the cloud with **AWS**.
+
+<NextLesson
+  title="Introduction to AWS"
+  href="/ultimate-devops-learning-hub/aws/introduction"
+/>

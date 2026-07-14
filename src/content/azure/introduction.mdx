@@ -1,0 +1,152 @@
+---
+title: "Introduction to Azure"
+description: "Meet Microsoft Azure — the enterprise cloud — and learn how its core concepts map to what you already know from AWS."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Azure"
+  description="Microsoft's cloud platform — dominant in the enterprise, and a valuable second cloud to know."
+  timeToRead="10 min"
+  icon="🔷"
+  section="Azure"
+  sectionUrl="/azure/introduction"
+/>
+
+**Microsoft Azure** is the second-largest cloud platform and the dominant choice in large enterprises — especially those already using Microsoft products like Windows Server, Active Directory, and Office 365. Knowing both AWS and Azure makes you far more employable as a DevOps engineer.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what Azure is and where it's used
+- Map Azure concepts to their AWS equivalents
+- Understand the Azure hierarchy
+- Install and log in with the Azure CLI
+
+---
+
+# Azure vs AWS — Same Ideas, Different Names
+
+The cloud concepts you learned for AWS transfer directly. Only the names change:
+
+| Concept | AWS | Azure |
+|---------|-----|-------|
+| Virtual server | EC2 | Virtual Machine (VM) |
+| Object storage | S3 | Blob Storage |
+| Identity & access | IAM | Microsoft Entra ID + RBAC |
+| Networking | VPC | Virtual Network (VNet) |
+| Managed database | RDS | Azure SQL Database |
+| Serverless functions | Lambda | Azure Functions |
+
+<Tip title="You already know the concepts">
+If you understood the AWS section, you already understand 80% of Azure. Focus on learning the naming and the console — the underlying ideas (compute, storage, identity, networking) are the same.
+</Tip>
+
+---
+
+# The Azure Hierarchy
+
+Azure organises everything in a clear hierarchy:
+
+<CommandBlock command={`Management Group        (optional, groups subscriptions)
+└── Subscription        (billing + access boundary)
+    └── Resource Group  (a folder for related resources)
+        ├── Virtual Machine
+        ├── Storage Account
+        └── Virtual Network`} language="text" />
+
+This structure — especially the **Resource Group** — is one of Azure's nicest features, and it's the focus of the next lesson.
+
+---
+
+# Install & Log In with the Azure CLI
+
+<CommandBlock command={`# Install on Ubuntu / WSL:
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+az login          # opens a browser to authenticate
+az account show   # confirm the active subscription`} />
+
+<Terminal
+  command="az account show --output table"
+  output={`Name                CloudName    SubscriptionId       State    IsDefault
+------------------  -----------  -------------------  -------  ---------
+Free Trial          AzureCloud   00000000-0000-...    Enabled  True`}
+/>
+
+---
+
+# 🧪 Hands-on
+
+<Exercise title="Get Started with Azure">
+  <div slot="tasks">
+    1. Create a free Azure account (it includes free credits and always-free services).
+    2. Explore the **Azure Portal** — find Virtual Machines, Storage accounts, and Resource groups.
+    3. Install the Azure CLI and run `az login`.
+    4. Run `az account show` to confirm your subscription.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="az login && az account show --query name -o tsv"
+      output={`Free Trial`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the Azure equivalent of an AWS EC2 instance?"
+  options={["Blob Storage", "Virtual Machine (VM)", "Resource Group", "Azure Functions"]}
+  answer={1}
+  explanation="Azure Virtual Machines provide the same on-demand virtual servers that EC2 does on AWS."
+/>
+
+<Quiz
+  question="Which Azure concept is a billing and access boundary that contains resource groups?"
+  options={["Region", "Subscription", "Blob", "Tenant"]}
+  answer={1}
+  explanation="A Subscription is the billing and access boundary in Azure. It contains resource groups, which in turn contain resources."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why might a company choose Azure over AWS?">
+  Several common reasons:
+
+  - **Existing Microsoft investment:** organisations already using Windows Server, Active Directory, SQL Server, and Microsoft 365 get tight integration and often favourable licensing.
+  - **Hybrid cloud:** Azure Arc and Azure Stack are strong for companies that need to run workloads across on-premises and cloud.
+  - **Enterprise agreements:** many large enterprises already have Microsoft enterprise agreements, making Azure procurement simpler.
+  - **Compliance:** Azure has broad compliance certifications valued in regulated industries.
+
+  In practice the technical capabilities of AWS and Azure are broadly comparable — the choice is often driven by existing relationships, skills, and cost agreements rather than raw features.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand what Azure is, how its concepts map to AWS, the subscription → resource group → resource hierarchy, and how to log in with the CLI. Next, we organise resources with **Resource Groups**.
+
+<NextLesson
+  title="Azure Resource Groups"
+  href="/ultimate-devops-learning-hub/azure/resource-groups"
+/>

@@ -1,0 +1,173 @@
+---
+title: "AWS EC2 — Virtual Servers"
+description: "Launch, connect to, and manage virtual servers in the cloud — and understand the pieces that keep them secure and affordable."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="AWS EC2 — Virtual Servers"
+  description="Spin up a Linux server in the cloud in minutes — the workhorse of AWS."
+  timeToRead="12 min"
+  icon="🖥️"
+  section="AWS"
+  sectionUrl="/aws/introduction"
+/>
+
+**EC2 (Elastic Compute Cloud)** gives you virtual servers — "instances" — that you can launch in minutes and shut down when you're done. It's the service you'll use to run applications, host websites, and practise everything you learned in the Linux section, in the cloud.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what an EC2 instance is
+- Know the key choices when launching one
+- Connect to an instance with SSH
+- Understand security groups and cost control
+
+---
+
+# Anatomy of an EC2 Instance
+
+When you launch an instance you choose:
+
+| Choice | What it means |
+|--------|---------------|
+| **AMI** | The base image — the OS and pre-installed software (e.g. Ubuntu 24.04) |
+| **Instance type** | The size — vCPUs and memory (e.g. `t3.micro`) |
+| **Key pair** | The SSH key you'll use to log in |
+| **Security group** | A virtual firewall controlling inbound/outbound traffic |
+| **Storage (EBS)** | The virtual hard disk attached to the instance |
+
+<Tip title="Free-tier friendly">
+The `t2.micro` / `t3.micro` instance types are included in the AWS Free Tier for a set number of hours per month — perfect for practising without a bill.
+</Tip>
+
+---
+
+# Security Groups = Firewalls
+
+A security group controls what traffic can reach your instance. A typical web server:
+
+<CommandBlock command={`Inbound rules
+─────────────
+SSH   (port 22)   ← your IP only        # you can log in
+HTTP  (port 80)   ← 0.0.0.0/0           # anyone can browse
+HTTPS (port 443)  ← 0.0.0.0/0`} language="text" />
+
+<Warning title="Don't open SSH to the world">
+Setting SSH (port 22) to `0.0.0.0/0` exposes your login to the entire internet and invites constant brute-force attempts. Restrict port 22 to **your IP address** only.
+</Warning>
+
+---
+
+# Connect with SSH
+
+Remember SSH from the Linux section? This is where it pays off. Use the key pair you selected at launch:
+
+<CommandBlock command={`chmod 400 my-key.pem
+ssh -i my-key.pem ubuntu@<instance-public-ip>`} />
+
+<Terminal
+  command="ssh -i my-key.pem ubuntu@54.72.10.5"
+  output={`Welcome to Ubuntu 24.04 LTS (GNU/Linux 6.8.0-aws x86_64)
+ubuntu@ip-172-31-8-14:~$`}
+/>
+
+You're now inside a Linux server running in an AWS data centre.
+
+---
+
+# Control the Cost
+
+<CommandBlock command={`# From the CLI (or the console):
+aws ec2 stop-instances  --instance-ids i-0abc123   # stop = no compute charge
+aws ec2 start-instances --instance-ids i-0abc123   # start it again later
+aws ec2 terminate-instances --instance-ids i-0abc123  # delete permanently`} />
+
+<Warning title="Stop or terminate when you're done">
+A running instance is billed by the second. **Stop** it to pause compute charges, or **terminate** it to remove it entirely. Forgetting a running instance is the classic "surprise AWS bill".
+</Warning>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Launch and Connect to an Instance">
+  <div slot="tasks">
+    1. Launch a `t3.micro` Ubuntu instance in the console.
+    2. Create/select a key pair and download the `.pem` file.
+    3. Set a security group: SSH from **your IP**, HTTP from anywhere.
+    4. Connect via `ssh -i key.pem ubuntu@<public-ip>` and run `uname -a`.
+    5. **Terminate** the instance when finished.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="ssh -i key.pem ubuntu@54.72.10.5 'uname -a'"
+      output="Linux ip-172-31-8-14 6.8.0-aws #1 SMP x86_64 GNU/Linux"
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is a security group in EC2?"
+  options={[
+    "A team of AWS administrators",
+    "A virtual firewall that controls traffic to and from an instance",
+    "A billing category",
+    "A backup of your data"
+  ]}
+  answer={1}
+  explanation="A security group acts as a virtual firewall, defining which inbound and outbound traffic is allowed to reach the instance."
+/>
+
+<Quiz
+  question="You've finished practising. How do you avoid being charged for compute?"
+  options={[
+    "Close the browser tab",
+    "Stop or terminate the instance",
+    "Change the region",
+    "Nothing — it's always free"
+  ]}
+  answer={1}
+  explanation="A running instance is billed by the second. Stopping pauses compute charges; terminating removes the instance entirely."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What's the difference between stopping and terminating an EC2 instance?">
+  - **Stopping** shuts the instance down like powering off a computer. You stop paying for compute, the attached EBS volume (and its data) is preserved, but the public IP usually changes on restart. You can start it again later.
+
+  - **Terminating** permanently deletes the instance. By default the root EBS volume is deleted too, so the data is gone. You cannot restart a terminated instance.
+
+  Rule of thumb: **stop** when you'll come back to it; **terminate** when you're truly done and want to stop all associated charges.
+</InterviewPrep>
+
+---
+
+# 🎉 Section Complete
+
+You can now launch, secure, connect to, and manage EC2 instances — and keep costs under control. You've covered the AWS essentials: cloud concepts, IAM, and compute. Next, we explore the other major cloud: **Microsoft Azure**.
+
+<NextLesson
+  title="Introduction to Azure"
+  href="/ultimate-devops-learning-hub/azure/introduction"
+/>

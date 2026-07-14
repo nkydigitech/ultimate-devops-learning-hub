@@ -1,75 +1,22 @@
 ---
 import { withBase } from "../utils/url";
+import type { LessonNavLink } from "../utils/lessons";
 
 interface Props {
   title: string;
   description: string;
+  prev?: LessonNavLink | null;
+  next?: LessonNavLink | null;
 }
 
-const { title, description } = Astro.props;
+// prev/next are computed per-section in the [slug].astro route (sorted by the
+// lesson `order`), so this layout stays generic across linux/github/aws/azure.
+const { title, description, prev = null, next = null } = Astro.props;
 
 const home = withBase("/");
 
-const lessons = [
-  {
-    title: "Introduction",
-    slug: "introduction",
-    url: withBase("/linux/introduction")
-  },
-   {
-    title: "Installing Linux",
-    slug: "installing-linux",
-    url: withBase("/linux/installing-linux")
-  },
-  {
-    title: "Linux Basics",
-    slug: "linux-basics",
-    url: withBase("/linux/linux-basics")
-  },
-  {
-    title: "Filesystem",
-    slug: "filesystem",
-    url: withBase("/linux/filesystem")
-  },
-  {
-    title: "Permissions",
-    slug: "permissions",
-    url: withBase("/linux/permissions")
-  },
-  {
-    title: "Bash",
-    slug: "bash",
-    url: withBase("/linux/bash")
-  },
-  {
-    title: "Networking",
-    slug: "networking",
-    url: withBase("/linux/networking")
-  },
-  {
-    title: "SSH",
-    slug: "ssh",
-    url: withBase("/linux/ssh")
-  }
-];
-
-// Derive the current slug from the last non-empty path segment so it works
-// whether or not the URL has a trailing slash (GitHub Pages serves /.../slug/).
-const currentSlug = Astro.url.pathname.split("/").filter(Boolean).pop();
-
-const currentIndex = lessons.findIndex(
-  lesson => lesson.slug === currentSlug
-);
-
-const previousLesson =
-  currentIndex > 0
-    ? lessons[currentIndex - 1]
-    : null;
-
-const nextLesson =
-  currentIndex !== -1 && currentIndex < lessons.length - 1
-    ? lessons[currentIndex + 1]
-    : null;
+const previousLesson = prev;
+const nextLesson = next;
 ---
 
 <!DOCTYPE html>

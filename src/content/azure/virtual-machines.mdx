@@ -1,0 +1,169 @@
+---
+title: "Azure Virtual Machines"
+description: "Deploy, connect to, and manage virtual machines on Azure — applying everything you've learned about Linux and the cloud."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Azure Virtual Machines"
+  description="Launch a Linux server on Azure — the same idea as EC2, the Azure way."
+  timeToRead="12 min"
+  icon="🖥️"
+  section="Azure"
+  sectionUrl="/azure/introduction"
+/>
+
+An **Azure Virtual Machine (VM)** is an on-demand server in Microsoft's cloud — Azure's equivalent of AWS EC2. In this lesson you'll create one, connect with SSH, and manage its lifecycle, tying together everything from the Linux, GitHub, and AWS sections.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Create an Azure Linux VM with the CLI
+- Understand VM sizes and images
+- Connect via SSH
+- Manage and de-provision the VM to control cost
+
+---
+
+# Create a VM in One Command
+
+Azure can create the VM, its disk, network, and public IP in a single command:
+
+<CommandBlock command={`az vm create \\
+  --resource-group rg-devops-lab \\
+  --name vm-linux-01 \\
+  --image Ubuntu2404 \\
+  --size Standard_B1s \\
+  --admin-username azureuser \\
+  --generate-ssh-keys`} />
+
+<Terminal
+  command="az vm create ... --output table"
+  output={`Name         ResourceGroup   PublicIpAddress   Location
+-----------  --------------  ----------------  ----------
+vm-linux-01  rg-devops-lab   20.61.45.12       westeurope`}
+/>
+
+Note the **public IP** — you'll use it to connect. `Standard_B1s` is a small, low-cost size ideal for learning.
+
+---
+
+# Connect with SSH
+
+Because you used `--generate-ssh-keys`, Azure created a key pair for you. Connect exactly like any Linux server:
+
+<CommandBlock command="ssh azureuser@20.61.45.12" />
+
+<Terminal
+  command="ssh azureuser@20.61.45.12 'uname -a'"
+  output="Linux vm-linux-01 6.8.0-azure #1 SMP x86_64 GNU/Linux"
+/>
+
+Everything you learned in the Linux section now applies to this cloud server.
+
+---
+
+# Open a Port (Network Security Group)
+
+Like AWS security groups, Azure uses **Network Security Groups (NSGs)**. To let web traffic in:
+
+<CommandBlock command={`az vm open-port \\
+  --resource-group rg-devops-lab \\
+  --name vm-linux-01 \\
+  --port 80`} />
+
+<Warning title="Only open what you need">
+Every open port is an attack surface. Open `80`/`443` for a web server, keep SSH (`22`) restricted to your own IP, and close everything else. This is the same discipline you used with AWS security groups.
+</Warning>
+
+---
+
+# Manage the Lifecycle (and the Bill)
+
+<CommandBlock command={`az vm stop        -g rg-devops-lab -n vm-linux-01   # stop the OS
+az vm deallocate  -g rg-devops-lab -n vm-linux-01   # release compute (stops billing)
+az vm start       -g rg-devops-lab -n vm-linux-01   # start again`} />
+
+<Warning title="Stop is not enough — deallocate">
+On Azure, `stop` alone can still incur compute charges. Use **`deallocate`** to actually release the compute resources and stop the meter. Or, to remove everything at once, delete the whole resource group (previous lesson).
+</Warning>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Deploy and Tear Down a VM">
+  <div slot="tasks">
+    1. In `rg-devops-lab`, create an Ubuntu `Standard_B1s` VM with generated SSH keys.
+    2. Note the public IP and connect via SSH; run `uname -a`.
+    3. Open port 80.
+    4. When finished, **deallocate** the VM — or delete the whole resource group to clean up completely.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="az vm deallocate -g rg-devops-lab -n vm-linux-01 && echo 'compute released'"
+      output="compute released"
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="On Azure, which action actually stops you being billed for VM compute?"
+  options={[
+    "Closing the SSH session",
+    "az vm stop only",
+    "az vm deallocate",
+    "Renaming the VM"
+  ]}
+  answer={2}
+  explanation="Stopping the OS can still incur compute charges on Azure. Deallocating releases the underlying compute resources and stops the compute meter."
+/>
+
+<Quiz
+  question="What is an Azure Network Security Group (NSG) most similar to in AWS?"
+  options={["An IAM role", "A security group", "An S3 bucket", "A resource group"]}
+  answer={1}
+  explanation="An NSG controls inbound/outbound traffic to Azure resources — the same role AWS security groups play for EC2."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="A teammate says their Azure bill is high even though all their VMs are 'stopped'. What might be wrong?">
+  The most likely cause is that the VMs are **stopped but not deallocated**. On Azure, a VM in the "Stopped" state (for example, shut down from inside the OS) can still reserve compute capacity and continue to bill for it.
+
+  To actually stop compute charges you must **deallocate** the VM (`az vm deallocate`, or "Stop" from the Azure portal, which deallocates). Even then, some resources keep costing money — **managed disks**, **static public IPs**, and **snapshots** are billed whether or not the VM is running.
+
+  So the fix is: deallocate unused VMs, and review associated disks and IPs. For throwaway lab work, deleting the entire resource group is the cleanest way to guarantee nothing is left billing.
+</InterviewPrep>
+
+---
+
+# 🎉 You've Reached the End of the Current Curriculum
+
+Congratulations — you've worked through **Linux**, **Git & GitHub**, **AWS**, and **Azure**. You can now operate Linux servers, version and collaborate on code, and deploy and secure infrastructure across the two largest clouds.
+
+From the homepage roadmap, the natural next steps are **Docker**, **Kubernetes**, **Terraform**, and **CI/CD** — the same designed format is ready for them whenever you want to build them out.
+
+<Tip title="Keep practising">
+The fastest way to make this stick: pick one small project, put it in GitHub, deploy it to an AWS EC2 or Azure VM, and automate the deploy with a Bash script. Real repetition beats re-reading every time.
+</Tip>

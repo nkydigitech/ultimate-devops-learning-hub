@@ -1,0 +1,162 @@
+---
+title: "Introduction to Git & GitHub"
+description: "Understand version control, why every DevOps team relies on Git, and how GitHub powers modern collaboration."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Git & GitHub"
+  description="The version-control foundation every DevOps engineer builds on."
+  timeToRead="9 min"
+  icon="🐙"
+  section="GitHub"
+  sectionUrl="/github/introduction"
+/>
+
+If Linux is where your code runs, **Git** is how your code is tracked, shared, and shipped. Every serious software and DevOps team on the planet uses version control — and Git is the standard.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what version control is and why it matters
+- Know the difference between **Git** and **GitHub**
+- Understand the core Git workflow
+- Install and configure Git
+
+---
+
+# What is Version Control?
+
+Version control is a system that records changes to your files over time, so you can:
+
+- Go back to any previous version
+- See who changed what, and when
+- Work on the same project with a whole team — without overwriting each other
+
+Without it, teams end up with folders like `project_final_v2_REALLY_final.zip`. Git ends that chaos.
+
+---
+
+# Git vs GitHub — What's the Difference?
+
+| | **Git** | **GitHub** |
+|---|---------|-----------|
+| What it is | A tool that runs on your machine | A website / cloud service |
+| Job | Tracks changes locally | Hosts your Git repositories online |
+| Works offline? | Yes | No (it's a remote) |
+| Analogy | The camera taking snapshots | The photo album you share with others |
+
+<Tip title="The one-line version">
+**Git** is the version-control tool. **GitHub** is a place to store and share Git repositories in the cloud (alternatives include GitLab and Bitbucket).
+</Tip>
+
+---
+
+# The Core Git Workflow
+
+Almost everything in Git follows this cycle:
+
+<CommandBlock command={`Working Directory   →   Staging Area   →   Repository   →   GitHub
+   (edit files)         (git add)        (git commit)     (git push)`} language="text" />
+
+You edit files, **stage** the changes you want to keep, **commit** them as a snapshot, and **push** them to GitHub to share.
+
+---
+
+# Install & Configure Git
+
+<CommandBlock command={`sudo apt update && sudo apt install git -y   # Ubuntu / WSL
+git --version                                # verify`} />
+
+Set your identity once — every commit you make is stamped with it:
+
+<CommandBlock command={`git config --global user.name "Your Name"
+git config --global user.email "you@example.com"`} />
+
+<Terminal
+  command="git --version && git config --global user.name"
+  output={`git version 2.43.0
+Your Name`}
+/>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Set Up Git on Your Machine">
+  <div slot="tasks">
+    1. Install Git and confirm the version
+    2. Set your global `user.name` and `user.email`
+    3. Confirm the settings with `git config --list`
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="git config --global user.name 'Ada Lovelace' && git config --global user.email 'ada@example.com' && git config --list | grep user"
+      output={`user.name=Ada Lovelace
+user.email=ada@example.com`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the main difference between Git and GitHub?"
+  options={[
+    "They are the same thing",
+    "Git is a local version-control tool; GitHub is a cloud service that hosts Git repositories",
+    "Git is online; GitHub is offline",
+    "GitHub replaced Git"
+  ]}
+  answer={1}
+  explanation="Git is the version-control tool that runs on your machine. GitHub is a hosting service where you store and share Git repositories."
+/>
+
+<Quiz
+  question="Which command records a snapshot of your staged changes?"
+  options={["git add", "git commit", "git push", "git status"]}
+  answer={1}
+  explanation="git commit saves a snapshot of the staged changes into the repository. git add stages them first; git push uploads them to GitHub."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why do DevOps teams consider Git essential?">
+  Git is foundational to DevOps for several reasons:
+
+  - **Single source of truth:** all code and often infrastructure definitions live in Git.
+  - **Collaboration:** branches and pull requests let many engineers work in parallel safely.
+  - **Traceability:** every change is attributed and reversible, which is critical for audits and incident response.
+  - **Automation trigger:** CI/CD pipelines (like GitHub Actions) are triggered by Git events such as a push or a merged pull request.
+
+  In modern practice, "GitOps" even uses Git as the desired-state source for deploying infrastructure.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand what version control is, how Git and GitHub differ, and the edit → add → commit → push workflow. Next, you'll run these commands for real.
+
+<NextLesson
+  title="Git Basics — Your First Repository"
+  href="/ultimate-devops-learning-hub/github/git-basics"
+/>

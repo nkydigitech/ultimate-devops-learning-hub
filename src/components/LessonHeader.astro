@@ -4,26 +4,30 @@ interface Props {
   description: string;
   timeToRead?: string;
   icon?: string;
+  section?: string;
+  sectionUrl?: string;
 }
 
 import { withBase } from "../utils/url";
 
-const { 
-  title, 
-  description, 
-  timeToRead = "10 min", 
-  icon = "🐧" 
+const {
+  title,
+  description,
+  timeToRead = "10 min",
+  icon = "🐧",
+  section = "Linux",
+  sectionUrl = "/linux/introduction",
 } = Astro.props;
 
 const homeUrl = withBase("/");
-const linuxUrl = withBase("/linux/introduction");
+const sectionLink = withBase(sectionUrl);
 ---
 
 <header class="lesson-header">
   <div class="breadcrumb">
     <a href={homeUrl}>Home</a> 
     <span class="sep">/</span> 
-    <a href={linuxUrl}>Linux</a> 
+    <a href={sectionLink}>{section}</a> 
     <span class="sep">/</span> 
     <span class="current">{title}</span>
   </div>

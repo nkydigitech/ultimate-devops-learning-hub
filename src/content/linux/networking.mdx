@@ -1,0 +1,200 @@
+---
+title: "Linux Networking"
+description: "Learn how Linux systems communicate over a network and practice the commands you'll use to diagnose real problems."
+order: 7
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Linux Networking"
+  description="Inspect interfaces, test connectivity, and diagnose the network problems behind most production incidents."
+  timeToRead="12 min"
+  icon="🌐"
+/>
+
+Imagine a server that can't reach another server: no websites, no Docker pulls, no GitHub access, no Kubernetes cluster. Networking is what lets computers communicate — and as a DevOps engineer you'll troubleshoot it almost every day.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what networking is
+- Find your IP address and hostname
+- Inspect network interfaces and routing
+- Test connectivity and DNS
+- Diagnose common network problems
+
+---
+
+# Your IP Address and Hostname
+
+Every computer has an address and a name:
+
+<Terminal
+  command="hostname && hostname -I"
+  output={`devops-hub
+172.28.192.1`}
+/>
+
+- `hostname` — the computer's name
+- `hostname -I` — its IP address on the network
+
+---
+
+# Network Interfaces
+
+<CommandBlock command={`ip addr    # show all network interfaces
+ip a       # short form of the same command`} />
+
+Common interfaces you'll see:
+
+| Interface | Meaning |
+|-----------|---------|
+| `lo` | Loopback (the machine talking to itself) |
+| `eth0` | Wired Ethernet |
+| `wlan0` | Wireless |
+
+---
+
+# Testing Connectivity
+
+Ping tests whether you can reach another machine. Stop it with **Ctrl + C**.
+
+<Terminal
+  command="ping 8.8.8.8"
+  output={`64 bytes from 8.8.8.8: icmp_seq=1 ttl=115 time=12.4 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=115 time=11.9 ms`}
+/>
+
+Then test a **domain name** — if this works, DNS is resolving correctly:
+
+<CommandBlock command="ping google.com" />
+
+---
+
+# Routing and Open Ports
+
+<CommandBlock command={`ip route     # where does traffic go? shows the default gateway
+ss -tuln     # which ports are listening on this machine?`} />
+
+<Terminal
+  command="ip route"
+  output="default via 192.168.1.1 dev eth0"
+/>
+
+The routing table tells Linux where to send network traffic; `ss -tuln` is invaluable for checking whether your application is actually listening.
+
+---
+
+# Downloading from the Network
+
+<CommandBlock command={`curl https://example.com     # fetch a URL and print it
+wget https://example.com     # download a file`} />
+
+These commands appear constantly in automation scripts.
+
+---
+
+# Real DevOps Example
+
+A deployment fails because the server can't reach GitHub. The very first check:
+
+<Terminal
+  command="ping github.com"
+  output={`ping: github.com: Temporary failure in name resolution`}
+/>
+
+That error points straight at **DNS** — if networking is broken, nothing else matters.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Diagnose Your Network">
+  <div slot="tasks">
+    Run each command and note the output:
+
+    1. `hostname` and `hostname -I`
+    2. `ip addr` — find your active interface
+    3. `ip route` — find your default gateway
+    4. `ping 8.8.8.8` then `ping google.com` (Ctrl + C to stop)
+
+    Write down your hostname, IP, gateway, and active interface.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="hostname -I && ip route | grep default"
+      output={`172.28.192.1
+default via 172.28.192.1 dev eth0`}
+    />
+  </div>
+</Exercise>
+
+<Tip title="DevOps Tip">
+Whenever something "doesn't work," first ask: *is it a network problem?* A huge share of production incidents begin with connectivity or DNS.
+</Tip>
+
+---
+
+# ⚠ Common Beginner Mistakes
+
+<Warning title="Ping the IP, then the name">
+If `ping 8.8.8.8` works but `ping google.com` fails, your connectivity is fine but **DNS** is misconfigured. Testing an IP and a domain separately instantly narrows down the problem.
+</Warning>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which command displays your machine's IP address?"
+  options={["hostname -I", "pwd", "ls", "chmod"]}
+  answer={0}
+  explanation="hostname -I prints the IP address(es) assigned to the machine. hostname alone prints just the name."
+/>
+
+<Quiz
+  question="ping 8.8.8.8 succeeds but ping google.com fails. What's the likely problem?"
+  options={["The network cable is unplugged", "DNS resolution", "The firewall blocks all traffic", "The CPU is overloaded"]}
+  answer={1}
+  explanation="Reaching an IP but not a domain name means connectivity works and the failure is in DNS name resolution."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Walk me through how you'd troubleshoot 'the server can't reach the internet'.">
+  A structured, layer-by-layer approach:
+
+  1. **Interface up?** `ip addr` — confirm the interface has an IP.
+  2. **Gateway reachable?** `ip route` to find the default gateway, then `ping` it.
+  3. **Internet reachable?** `ping 8.8.8.8` — tests raw connectivity by IP.
+  4. **DNS working?** `ping google.com` — if the IP works but the name doesn't, it's DNS (check `/etc/resolv.conf`).
+  5. **Application layer?** `curl -v https://...` and `ss -tuln` to confirm ports and services.
+
+  Working from the lowest layer up quickly isolates where the break is.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand the networking fundamentals used by Linux servers everywhere — interfaces, IPs, routing, connectivity, and DNS.
+
+<NextLesson
+  title="SSH — Secure Shell"
+  href="/ultimate-devops-learning-hub/linux/ssh"
+/>

@@ -1,0 +1,184 @@
+---
+title: "Linux Basics"
+description: "Your first steps inside the Linux terminal — navigate, create, and manage files like a DevOps engineer."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Linux Basics"
+  description="Learn the essential terminal commands you'll use every single day as a DevOps engineer."
+  timeToRead="12 min"
+  icon="⌨️"
+/>
+
+Welcome to your first real Linux lesson. From here on you'll work inside the terminal — just like professional DevOps, Cloud, and Site Reliability Engineers. Don't worry if it feels new; every expert once typed their very first command.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will be able to:
+
+- Understand what the Linux terminal is
+- Navigate directories
+- Display your current location
+- Create folders and files
+- Remove files and folders safely
+- Understand relative vs absolute paths
+
+---
+
+# What is the Terminal?
+
+Unlike Windows, where many tasks are done by clicking icons, Linux administrators spend much of their day in the **terminal** — typing commands that talk directly to the operating system. Learning the terminal is the single most important Linux skill.
+
+---
+
+# Your First Commands
+
+**Print working directory** — where am I?
+
+<Terminal command="pwd" output="/home/student" />
+
+`pwd` stands for **Print Working Directory**. It tells you exactly where you are.
+
+**List files:**
+
+<CommandBlock command={`ls        # list files
+ls -l     # long format (permissions, size, date)
+ls -la    # include hidden files`} />
+
+**Change directory:**
+
+<CommandBlock command={`cd Documents   # move into a folder
+cd ..          # go back one level
+cd             # return to your home directory`} />
+
+---
+
+# Creating and Removing Things
+
+<CommandBlock command={`mkdir linux-practice   # create a folder
+cd linux-practice      # enter it
+touch notes.txt        # create an empty file
+ls                     # verify it exists
+rm notes.txt           # remove the file
+cd ..                  # leave the folder
+rmdir linux-practice   # remove the (empty) folder`} />
+
+<Warning title="rm has no undo">
+There is no Recycle Bin on the Linux command line. `rm` deletes immediately and permanently. Double-check the path before you press Enter — especially with `rm -r`.
+</Warning>
+
+---
+
+# Relative vs Absolute Paths
+
+- **Relative path** — starts from where you currently are: `cd Documents`
+- **Absolute path** — starts from the root `/`: `cd /home/student/Documents`
+
+Professional engineers use both every day.
+
+---
+
+# Real DevOps Example
+
+When you log into a fresh AWS EC2 server, the first three commands most engineers type are:
+
+<Terminal
+  command="pwd && ls -la && cd /var/log"
+  output={`/home/ubuntu
+total 24
+drwxr-xr-x 3 ubuntu ubuntu 4096 Jul 12 10:00 .
+-rw-r--r-- 1 ubuntu ubuntu  220 Jul 12 09:58 .bash_logout`}
+/>
+
+These three commands alone are used thousands of times throughout a DevOps career.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Navigate and Manage Files">
+  <div slot="tasks">
+    Complete the following, in order:
+
+    1. Create a folder named `practice`
+    2. Inside it, create a file named `day1.txt`
+    3. Navigate into the folder and display your location
+    4. List all files
+    5. Delete the file, then delete the folder
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="mkdir practice && cd practice && touch day1.txt && pwd && ls && rm day1.txt && cd .. && rmdir practice"
+      output={`/home/student/practice
+day1.txt`}
+    />
+  </div>
+</Exercise>
+
+<Tip title="DevOps Tip">
+Don't try to memorize commands. Use them repeatedly. Within a week your fingers will remember them automatically.
+</Tip>
+
+---
+
+# ⚠ Common Beginner Mistakes
+
+<Warning title="Watch Out For These">
+- **Missing spaces:** `cdDocuments` is wrong — it's `cd Documents`.
+- **Case sensitivity:** `Documents`, `documents`, and `DOCUMENTS` are three different names in Linux.
+</Warning>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which command shows your current location?"
+  options={["ls", "pwd", "cd", "touch"]}
+  answer={1}
+  explanation="pwd (Print Working Directory) prints the absolute path of the directory you are currently in."
+/>
+
+<Quiz
+  question="Which command creates a new directory?"
+  options={["touch", "mkdir", "pwd", "rm"]}
+  answer={1}
+  explanation="mkdir (make directory) creates a new folder. touch creates an empty file."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What is the difference between an absolute path and a relative path?">
+  An **absolute path** always starts from the root directory `/` and describes the full location regardless of where you are — for example `/home/student/Documents`.
+
+  A **relative path** is interpreted from your current working directory — for example `Documents` or `../logs`.
+
+  Absolute paths are unambiguous and are preferred in scripts and cron jobs; relative paths are shorter and convenient for interactive work.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've officially started using Linux from the command line. `pwd`, `ls`, `cd`, `mkdir`, `touch`, and `rm` are the foundation of everything you'll do in DevOps.
+
+<NextLesson
+  title="Linux Filesystem"
+  href="/ultimate-devops-learning-hub/linux/filesystem"
+/>
