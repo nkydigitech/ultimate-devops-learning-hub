@@ -1,0 +1,23 @@
+---
+import { getCollection, render } from "astro:content";
+import LessonLayout from "../../layouts/LessonLayout.astro";
+import { buildLessonPaths } from "../../utils/lessons";
+
+export async function getStaticPaths() {
+  const lessons = await getCollection("azure");
+  return buildLessonPaths("azure", lessons);
+}
+
+const { lesson, prev, next } = Astro.props;
+
+const { Content } = await render(lesson);
+---
+
+<LessonLayout
+  title={lesson.data.title}
+  description={lesson.data.description}
+  prev={prev}
+  next={next}
+>
+  <Content />
+</LessonLayout>
