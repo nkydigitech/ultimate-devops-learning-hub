@@ -1,0 +1,228 @@
+---
+title: "Modules & Workflow"
+description: "Package reusable infrastructure with modules and follow the professional Terraform workflow used by real teams."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Modules & Workflow"
+  description="Reusable building blocks and the day-to-day workflow that keeps infrastructure safe."
+  timeToRead="11 min"
+  icon="🏗️"
+  section="Terraform"
+  sectionUrl="/terraform/introduction"
+/>
+
+Copy-pasting the same 50 lines of Terraform for every environment is a trap. **Modules** let you package infrastructure into reusable components. Combined with a disciplined **workflow**, they're how professional teams manage large systems safely.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what a Terraform module is
+- Write and call your own module
+- Use modules from the public registry
+- Follow the professional Terraform workflow
+
+---
+
+# What is a Module?
+
+A **module** is just a folder of `.tf` files that can be reused with different inputs. In fact, your root configuration is already a module — modules simply let you *call* one from another.
+
+<CommandBlock command={`modules/
+  webserver/
+    main.tf         # the resources
+    variables.tf    # inputs
+    outputs.tf      # outputs
+environments/
+  prod/
+    main.tf         # calls the webserver module`} language="text" />
+
+<Tip title="Think functions">
+A module is like a function: it takes inputs (variables), does work (creates resources), and returns outputs. Call it many times with different arguments to build many similar things.
+</Tip>
+
+---
+
+# Writing a Module
+
+The module (`modules/webserver/main.tf`) declares inputs and resources:
+
+<CommandBlock command={`variable "name"          { type = string }
+variable "instance_type" { type = string, default = "t3.micro" }
+
+resource "aws_instance" "this" {
+  ami           = "ami-0abc123"
+  instance_type = var.instance_type
+  tags = { Name = var.name }
+}
+
+output "id" {
+  value = aws_instance.this.id
+}`} language="hcl" />
+
+---
+
+# Calling a Module
+
+From your environment config, call the module and pass inputs:
+
+<CommandBlock command={`module "web" {
+  source        = "../../modules/webserver"
+  name          = "prod-web"
+  instance_type = "t3.large"
+}
+
+module "api" {
+  source = "../../modules/webserver"
+  name   = "prod-api"
+}
+
+output "web_id" {
+  value = module.web.id
+}`} language="hcl" />
+
+One module, called twice, builds two servers with different settings — no duplication.
+
+---
+
+# Using Registry Modules
+
+You don't have to write everything. The [Terraform Registry](https://registry.terraform.io) has battle-tested modules for common infrastructure:
+
+<CommandBlock command={`module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.5.0"
+
+  name = "prod-vpc"
+  cidr = "10.0.0.0/16"
+  azs  = ["us-east-1a", "us-east-1b"]
+}`} language="hcl" />
+
+<Warning title="Always pin module versions">
+Pin `version` on registry modules. An unpinned module can silently pull a breaking change on your next `init`, altering infrastructure unexpectedly.
+</Warning>
+
+---
+
+# The Professional Workflow
+
+Real teams follow a consistent cycle, usually automated in CI/CD:
+
+<CommandBlock command={`terraform fmt        # format code consistently
+terraform validate   # check syntax and basic correctness
+terraform plan -out=tfplan   # produce a reviewable plan
+# → open a pull request, review the plan
+terraform apply tfplan       # apply exactly what was reviewed`} />
+
+| Step | Why it matters |
+|------|----------------|
+| `fmt` | Consistent style, clean diffs |
+| `validate` | Catch errors before planning |
+| `plan -out` | Save the exact plan for review |
+| Peer review | Infrastructure changes get a second pair of eyes |
+| `apply` saved plan | Apply precisely what was approved, no drift |
+
+<Tip title="Plan in CI, apply on merge">
+A common setup: `plan` runs automatically on every pull request so reviewers see the impact, and `apply` runs only after the PR is merged. Infrastructure changes get the same rigor as code.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Build and Reuse a Module">
+  <div slot="tasks">
+    1. Create a module that produces a `local_file` from a `name` and `content` variable
+    2. Call it twice from your root config with different inputs
+    3. Run `fmt`, `validate`, `plan`, then `apply`
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`# root main.tf
+module "note_a" {
+  source  = "./modules/note"
+  name    = "a.txt"
+  content = "First"
+}
+module "note_b" {
+  source  = "./modules/note"
+  name    = "b.txt"
+  content = "Second"
+}`} language="hcl" />
+    <Terminal
+      command="terraform fmt && terraform validate && terraform apply -auto-approve && ls *.txt"
+      output={`Success! The configuration is valid.
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+a.txt  b.txt`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is a Terraform module?"
+  options={[
+    "A cloud provider",
+    "A reusable, parameterised collection of Terraform configuration",
+    "A type of state file",
+    "A command-line flag"
+  ]}
+  answer={1}
+  explanation="A module is a reusable set of .tf files with inputs and outputs. You call it with different arguments to build similar infrastructure without duplication."
+/>
+
+<Quiz
+  question="Why should you pin the version of a registry module?"
+  options={[
+    "To make it download slower",
+    "To prevent an unexpected breaking change from being pulled on the next init",
+    "It's not necessary",
+    "To hide the module"
+  ]}
+  answer={1}
+  explanation="Pinning the version ensures reproducible builds. Without it, terraform init could pull a newer, possibly breaking version that changes your infrastructure unexpectedly."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Describe a safe Terraform workflow for a team managing production.">
+  A mature workflow combines modules, remote state, and CI/CD:
+
+  1. **Code in Git** — all Terraform in version control, structured with reusable modules.
+  2. **Remote state with locking** — shared S3/GCS/Terraform Cloud backend so everyone works from one source of truth.
+  3. **PR-based changes** — `fmt` and `validate` run automatically; `plan` runs on every pull request so reviewers see exactly what will change.
+  4. **Peer review** — a human approves the plan before it's applied.
+  5. **Apply on merge** — the approved plan is applied by automation, never ad-hoc from a laptop.
+
+  This gives infrastructure the same safety, review, and auditability as application code.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed the Terraform track: Infrastructure as Code, configuration and variables, state and remote backends, and now modules and the professional workflow. You can build, share, and safely operate infrastructure as code. Next, we automate builds and deployments with Jenkins.
+
+<NextLesson
+  title="Introduction to Jenkins"
+  href="/ultimate-devops-learning-hub/jenkins/introduction"
+/>

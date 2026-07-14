@@ -1,0 +1,199 @@
+---
+title: "State & Remote Backends"
+description: "Understand Terraform state — the file that tracks your infrastructure — and why teams store it remotely with locking."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="State & Remote Backends"
+  description="The single most important operational concept in Terraform."
+  timeToRead="10 min"
+  icon="🏗️"
+  section="Terraform"
+  sectionUrl="/terraform/introduction"
+/>
+
+Terraform needs to remember what it has already built, so it can tell the difference between "create this" and "update that." It keeps this memory in a **state file**. Understanding state — and storing it safely — is what separates a hobby project from a real team workflow.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what Terraform state is and why it exists
+- Know the dangers of local state on a team
+- Configure a remote backend
+- Understand state locking
+
+---
+
+# What is State?
+
+When you run `apply`, Terraform records everything it created in a file called `terraform.tfstate`. On the next run, it compares three things:
+
+<CommandBlock command={`Your config  vs  State file  vs  Real infrastructure
+ (desired)       (last known)      (actual)`} language="text" />
+
+From that comparison it computes the minimal plan — what to add, change, or destroy.
+
+<Tip title="Why not just query the cloud?">
+Terraform uses state as a fast, authoritative record and to map your config names to real resource IDs. It's also how Terraform tracks resources that can't be easily discovered by scanning the cloud.
+</Tip>
+
+---
+
+# The Problem with Local State
+
+By default, state lives in a local file. For one person that's fine. On a team, it breaks:
+
+<Warning title="Local state doesn't scale to teams">
+If state sits on your laptop:
+- Teammates can't see or use it — they'd build duplicate resources.
+- Two people running `apply` at once can corrupt state or clash on real infrastructure.
+- Losing the file means Terraform "forgets" everything it manages.
+- State often contains sensitive values in plain text.
+</Warning>
+
+---
+
+# Remote Backends
+
+A **remote backend** stores state in shared, durable storage instead of on your machine. Common choices: AWS S3, Azure Blob Storage, Google Cloud Storage, or Terraform Cloud.
+
+<CommandBlock command={`terraform {
+  backend "s3" {
+    bucket         = "my-terraform-state"
+    key            = "prod/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-locks"   # enables locking
+    encrypt        = true
+  }
+}`} language="hcl" />
+
+Benefits:
+
+- **Shared** — the whole team uses one source of truth.
+- **Durable** — cloud storage is backed up and versioned.
+- **Encrypted** — sensitive values are protected at rest.
+- **Lockable** — prevents concurrent, conflicting applies.
+
+---
+
+# State Locking
+
+When someone runs `apply`, Terraform **locks** the state so no one else can change it at the same time. The lock releases when the run finishes.
+
+<Terminal
+  command="terraform apply"
+  output={`Acquiring state lock. This may take a few moments...
+aws_s3_bucket.data: Modifying...
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+Releasing state lock.`}
+/>
+
+Without locking, two simultaneous applies could race and corrupt both the state and the real infrastructure. With S3, a DynamoDB table provides the lock; other backends have their own mechanisms.
+
+---
+
+# Handy State Commands
+
+| Command | Purpose |
+|---------|---------|
+| `terraform state list` | List resources Terraform tracks |
+| `terraform state show <addr>` | Inspect one resource in state |
+| `terraform refresh` | Reconcile state with reality |
+| `terraform import <addr> <id>` | Bring an existing resource under management |
+
+<Warning title="Never hand-edit the state file">
+Editing `terraform.tfstate` by hand is a great way to corrupt it. Use the `terraform state` subcommands, which make changes safely.
+</Warning>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Inspect and Reason About State">
+  <div slot="tasks">
+    1. Apply a config with a couple of resources
+    2. List everything in state and inspect one resource
+    3. Explain why storing this state remotely matters for a team
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="terraform state list && terraform state show local_file.note"
+      output={`local_file.note
+# local_file.note:
+resource "local_file" "note" {
+    content  = "Environment: production"
+    filename = "prod.txt"
+    id       = "a1b2c3..."
+}`}
+    />
+    On a team, this record must be shared and locked so everyone plans against the same known state — hence a remote backend.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the main risk of keeping Terraform state on a single developer's laptop in a team?"
+  options={[
+    "It runs faster",
+    "Teammates can't share it, concurrent applies can corrupt it, and losing it loses tracking",
+    "Nothing — it's the recommended setup",
+    "It encrypts automatically"
+  ]}
+  answer={1}
+  explanation="Local state can't be shared safely, risks corruption from concurrent applies, and is a single point of failure. Teams use a remote backend with locking."
+/>
+
+<Quiz
+  question="What does state locking prevent?"
+  options={[
+    "Reading the state file",
+    "Two applies from running simultaneously and corrupting state or infrastructure",
+    "Creating any resources",
+    "Using variables"
+  ]}
+  answer={1}
+  explanation="Locking ensures only one apply modifies state at a time, preventing race conditions that could corrupt state or create conflicting infrastructure changes."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Explain how Terraform decides what changes to make on an apply.">
+  Terraform performs a three-way comparison:
+
+  1. **Desired state** — your `.tf` configuration.
+  2. **Recorded state** — the `terraform.tfstate` file (what it built last time).
+  3. **Actual state** — the real resources, refreshed from the provider APIs.
+
+  It computes the diff and produces a **plan**: resources to add, change, or destroy. State is central to this — it maps your config to real resource IDs and lets Terraform detect *drift* (manual changes made outside Terraform). That's why protecting and sharing state via a remote backend with locking is essential on a team.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand what state is, why local state fails for teams, how remote backends provide shared, encrypted, durable storage, and how locking prevents concurrent corruption. Next, you'll make configs reusable with modules and see the full production workflow.
+
+<NextLesson
+  title="Modules & Workflow"
+  href="/ultimate-devops-learning-hub/terraform/modules-and-workflow"
+/>
