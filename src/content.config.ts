@@ -24,4 +24,6 @@ export const collections = {
   github: section("github"),
   aws: section("aws"),
   azure: section("azure"),
+  python: section("python"),
+  ansible: section("ansible"),
 };
