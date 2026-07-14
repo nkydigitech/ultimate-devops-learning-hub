@@ -1,0 +1,164 @@
+---
+title: "Azure Resource Groups"
+description: "Organize, manage, and clean up related Azure resources as a single unit using resource groups."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Azure Resource Groups"
+  description="The folder system that keeps your cloud organized — and makes cleanup a single command."
+  timeToRead="9 min"
+  icon="🗂️"
+  section="Azure"
+  sectionUrl="/azure/introduction"
+/>
+
+A **Resource Group** is a container that holds related Azure resources — a VM, its disk, its network, its IP — so you can manage them as one unit. It's one of Azure's most practical ideas and has no exact single equivalent in AWS.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what a resource group is and why it's useful
+- Create and delete resource groups with the CLI
+- Apply tags for organization and cost tracking
+- Understand the lifecycle benefit of grouping resources
+
+---
+
+# Why Resource Groups Matter
+
+Everything in Azure lives inside a resource group. Grouping gives you:
+
+- **Lifecycle management** — deploy or delete an entire application's resources together.
+- **Access control** — apply permissions (RBAC) at the group level.
+- **Cost visibility** — see spend per group, often per project or environment.
+- **Organization** — a clear place for everything, e.g. `rg-shop-prod`, `rg-shop-dev`.
+
+<Tip title="A common pattern">
+Teams often create one resource group **per application per environment** — `rg-webapp-dev`, `rg-webapp-prod`. When a project ends, deleting the group cleans up everything in one move.
+</Tip>
+
+---
+
+# Create a Resource Group
+
+<CommandBlock command={`az group create \\
+  --name rg-devops-lab \\
+  --location westeurope`} />
+
+<Terminal
+  command="az group list --output table"
+  output={`Name            Location    Status
+--------------  ----------  ---------
+rg-devops-lab   westeurope  Succeeded`}
+/>
+
+---
+
+# Tag Resources for Cost Tracking
+
+Tags are key/value labels that make billing and organization far easier:
+
+<CommandBlock command={`az group update --name rg-devops-lab \\
+  --set tags.environment=dev tags.project=learning-hub`} />
+
+---
+
+# Clean Up in One Command
+
+This is the real payoff. Deleting a resource group deletes **everything inside it**:
+
+<CommandBlock command={`az group delete --name rg-devops-lab --yes --no-wait`} />
+
+<Warning title="Deletion is permanent and recursive">
+`az group delete` removes every resource in the group — VMs, disks, networks, data. There's no undo. Double-check the group name, especially before running it against anything that might be production.
+</Warning>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Create, Tag, and Delete a Group">
+  <div slot="tasks">
+    1. Create a resource group `rg-lab-01` in a region near you.
+    2. Add tags `environment=dev` and `owner=you`.
+    3. List your resource groups as a table.
+    4. Delete the group and confirm it's gone.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="az group create -n rg-lab-01 -l westeurope --tags environment=dev owner=you && az group delete -n rg-lab-01 --yes"
+      output={`{
+  "name": "rg-lab-01",
+  "properties": { "provisioningState": "Succeeded" }
+}`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What happens when you delete a resource group?"
+  options={[
+    "Only the group label is removed; resources remain",
+    "Every resource inside the group is permanently deleted",
+    "The resources are moved to another group",
+    "Nothing — groups can't be deleted"
+  ]}
+  answer={1}
+  explanation="Deleting a resource group deletes all resources contained within it. It's a fast, complete cleanup — and irreversible."
+/>
+
+<Quiz
+  question="What is a common reason to use tags on resource groups?"
+  options={[
+    "To make VMs run faster",
+    "To organize resources and track cost by project or environment",
+    "Tags are required to create any resource",
+    "To encrypt the resources"
+  ]}
+  answer={1}
+  explanation="Tags are key/value labels used for organization, cost allocation, and automation — e.g. environment=prod or project=shop."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How do Azure resource groups help with cost management and cleanup?">
+  Resource groups act as a lifecycle and organizational boundary:
+
+  - **Cleanup:** because every resource belongs to a group, deleting the group removes all associated resources in one operation — no orphaned disks or IPs quietly generating charges.
+  - **Cost allocation:** combined with **tags**, you can report spend per group, per project, or per environment, making it clear who is spending what.
+  - **Consistency:** grouping resources per environment (dev/test/prod) keeps environments cleanly separated and easy to spin up or tear down, which is ideal for CI/CD and short-lived test environments.
+
+  This is a big practical advantage over scattering resources with no container.
+</InterviewPrep>
+
+---
+
+# Summary
+
+Resource groups are Azure's organizational backbone — grouping related resources for management, access control, cost tracking, and one-command cleanup. Next, you'll launch an actual **Virtual Machine** inside one.
+
+<NextLesson
+  title="Azure Virtual Machines"
+  href="/ultimate-devops-learning-hub/azure/virtual-machines"
+/>

@@ -1,0 +1,156 @@
+---
+title: "Introduction to AWS"
+description: "Understand cloud computing, what AWS is, and the core concepts — regions, availability zones, and the shared responsibility model."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to AWS"
+  description="Your entry point to the world's most widely used cloud platform."
+  timeToRead="10 min"
+  icon="☁️"
+  section="AWS"
+  sectionUrl="/aws/introduction"
+/>
+
+**Amazon Web Services (AWS)** is the largest cloud platform in the world. Instead of buying and racking physical servers, you rent computing power, storage, and networking on demand — and pay only for what you use. Most modern DevOps roles expect you to be comfortable in at least one cloud, and AWS is the most common.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what cloud computing is
+- Know what AWS provides
+- Understand **Regions** and **Availability Zones**
+- Understand the **shared responsibility model**
+
+---
+
+# What is Cloud Computing?
+
+Cloud computing is renting IT resources over the internet instead of owning them.
+
+| Traditional (on-prem) | Cloud (AWS) |
+|-----------------------|-------------|
+| Buy physical servers | Rent virtual servers in minutes |
+| Pay upfront for hardware | Pay only for what you use |
+| Weeks to add capacity | Scale up/down in seconds |
+| You maintain everything | AWS maintains the hardware |
+
+<Tip title="The mental model">
+Think of AWS like electricity: you don't build a power station, you just plug in and pay for what you consume. AWS is computing power on tap.
+</Tip>
+
+---
+
+# What Does AWS Offer?
+
+AWS has 200+ services. As a DevOps engineer you'll start with a core handful:
+
+| Service | Purpose |
+|---------|---------|
+| **EC2** | Virtual servers |
+| **S3** | Object storage (files, backups, static sites) |
+| **IAM** | Users, roles, and permissions |
+| **VPC** | Private networking |
+| **RDS** | Managed databases |
+
+---
+
+# Regions and Availability Zones
+
+- A **Region** is a geographic area (e.g. `us-east-1` in Virginia, `eu-west-1` in Ireland). You choose regions close to your users, or where costs/laws suit you.
+- Each Region contains multiple **Availability Zones (AZs)** — physically separate data centres. Spreading your app across AZs means one data-centre failure won't take you down.
+
+<CommandBlock command={`Region: eu-west-1  (Ireland)
+├── AZ eu-west-1a   (data centre)
+├── AZ eu-west-1b   (data centre)
+└── AZ eu-west-1c   (data centre)`} language="text" />
+
+---
+
+# The Shared Responsibility Model
+
+Security in AWS is **shared**:
+
+- **AWS** secures the cloud itself — hardware, data centres, and the underlying infrastructure ("security *of* the cloud").
+- **You** secure what you put *in* the cloud — your data, access permissions, and configuration ("security *in* the cloud").
+
+<Warning title="Most breaches are the customer's side">
+The majority of cloud security incidents come from misconfiguration — a public S3 bucket, an over-permissive IAM policy — not from AWS being hacked. Getting IAM right (next lesson) is one of your most important jobs.
+</Warning>
+
+---
+
+# 🧪 Hands-on
+
+<Exercise title="Explore the AWS Free Tier">
+  <div slot="tasks">
+    You don't need to spend money to start learning AWS.
+
+    1. Create a free AWS account at aws.amazon.com (the **Free Tier** covers a lot).
+    2. In the console, open the **Region selector** (top-right) and note the region names.
+    3. Search for the **EC2**, **S3**, and **IAM** services and open each dashboard.
+    4. Set a **billing alarm** so you're notified if you ever approach a cost.
+  </div>
+
+  <div slot="solution">
+    There's no single command here — the goal is to get comfortable navigating the console, switching regions, and finding the core services. A billing alarm is the safety net that makes experimenting stress-free.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is an AWS Availability Zone?"
+  options={[
+    "A pricing tier",
+    "One or more physically separate data centres within a Region",
+    "A type of virtual server",
+    "A billing account"
+  ]}
+  answer={1}
+  explanation="A Region is a geographic area; it contains multiple Availability Zones, which are physically isolated data centres used for high availability."
+/>
+
+<Quiz
+  question="Under the shared responsibility model, who is responsible for a misconfigured, publicly-exposed S3 bucket?"
+  options={["AWS", "The customer", "Nobody", "The internet provider"]}
+  answer={1}
+  explanation="AWS secures the infrastructure; the customer is responsible for configuration and access controls of their own data — including bucket permissions."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Explain the difference between a Region and an Availability Zone, and why it matters for reliability.">
+  A **Region** is a broad geographic location (e.g. `us-east-1`). An **Availability Zone (AZ)** is one or more discrete data centres within a Region, with independent power, cooling, and networking.
+
+  It matters because deploying across **multiple AZs** protects you from a single data-centre failure — if one AZ goes down, your application keeps running in another. Deploying across multiple **Regions** goes further, protecting against a whole-region outage and reducing latency for globally distributed users. Choosing the right level of redundancy is a core reliability decision.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand what cloud computing and AWS are, how Regions and Availability Zones provide reliability, and how security responsibility is shared. Next, we lock down access with **IAM**.
+
+<NextLesson
+  title="AWS IAM — Users, Roles & Permissions"
+  href="/ultimate-devops-learning-hub/aws/iam"
+/>
