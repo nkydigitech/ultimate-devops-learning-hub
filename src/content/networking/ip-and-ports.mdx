@@ -1,0 +1,188 @@
+---
+title: "IP Addresses & Ports"
+description: "Learn how IP addresses identify machines, how ports identify programs, and the difference between TCP and UDP."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="IP Addresses & Ports"
+  description="How the network finds the right machine, and the right program on it."
+  timeToRead="10 min"
+  icon="🌐"
+  section="Networking"
+  sectionUrl="/networking/introduction"
+/>
+
+To deliver a message, the network needs two things: **which machine** (the IP address) and **which program on that machine** (the port). Get these two ideas and a huge amount of networking suddenly makes sense.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand IPv4 addresses and the idea of private vs public IPs
+- Know what a port is and why it matters
+- Recognise common ports used in DevOps
+- Understand the difference between TCP and UDP
+
+---
+
+# IP Addresses — the Machine's Location
+
+An **IP address** is the address of a device on a network, like a street address for a house.
+
+The most common form, IPv4, looks like `192.168.1.10` — four numbers (0–255) separated by dots.
+
+## Private vs Public
+
+| Type | Reachable from | Example ranges |
+|------|----------------|----------------|
+| **Private** | Only inside your local network | `10.x.x.x`, `172.16–31.x.x`, `192.168.x.x` |
+| **Public** | Anywhere on the internet | Anything not in the private ranges |
+
+<Tip title="Why this matters in the cloud">
+Inside a cloud VPC, servers usually talk to each other over **private** IPs. Only a load balancer or gateway gets a **public** IP. This is the foundation of a secure network design.
+</Tip>
+
+---
+
+# Ports — the Program's Door
+
+One machine runs many programs at once — a web server, a database, an SSH service. A **port** (a number from 0–65535) tells the network *which program* should receive the message.
+
+An address plus a port is called a **socket**: `192.168.1.10:443`.
+
+## Common ports to memorise
+
+| Port | Service |
+|------|---------|
+| 22 | SSH |
+| 80 | HTTP |
+| 443 | HTTPS |
+| 53 | DNS |
+| 3306 | MySQL |
+| 5432 | PostgreSQL |
+| 6379 | Redis |
+
+<Warning title="Firewalls block ports">
+If your app "won't connect," a closed port in a firewall or cloud security group is one of the most common causes. Always check: is the port open, and is the service actually listening on it?
+</Warning>
+
+---
+
+# TCP vs UDP
+
+Both live at the Transport layer, but they make different promises:
+
+| | **TCP** | **UDP** |
+|---|---------|---------|
+| Reliable? | Yes — confirms delivery, resends lost data | No — fire and forget |
+| Ordered? | Yes | No |
+| Speed | Slightly slower (more checks) | Faster, lighter |
+| Used for | Web, SSH, databases | DNS, video calls, gaming, metrics |
+
+<Tip title="Rule of thumb">
+Use **TCP** when every byte must arrive correctly (a web page, a bank transaction). Use **UDP** when speed matters more than perfection (a live video frame that's already out of date if it's late).
+</Tip>
+
+---
+
+# See It Yourself
+
+Check which ports are listening on your machine:
+
+<CommandBlock command={`ss -tulnp        # show listening TCP/UDP ports (Linux)
+curl -v http://localhost:80   # connect to a program on port 80`} />
+
+<Terminal
+  command="ss -tuln | grep LISTEN"
+  output={`tcp   LISTEN  0  128  0.0.0.0:22    0.0.0.0:*
+tcp   LISTEN  0  128  0.0.0.0:80    0.0.0.0:*
+tcp   LISTEN  0  128  127.0.0.1:5432  0.0.0.0:*`}
+/>
+
+Here SSH (22) and a web server (80) accept connections from anywhere, while PostgreSQL (5432) only listens on `127.0.0.1` — localhost only. That's a deliberate security choice.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Map the Ports on Your Machine">
+  <div slot="tasks">
+    1. List all listening ports
+    2. Identify which service each open port belongs to
+    3. Note which ones are bound to `127.0.0.1` (local only) vs `0.0.0.0` (all interfaces)
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="ss -tuln"
+      output={`Netid  State   Local Address:Port
+tcp    LISTEN  0.0.0.0:22
+tcp    LISTEN  0.0.0.0:443
+tcp    LISTEN  127.0.0.1:6379`}
+    />
+    SSH (22) and HTTPS (443) are open to the network; Redis (6379) is local-only — a safer default for a datastore.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What does a port number identify?"
+  options={[
+    "The physical location of the server",
+    "Which program on a machine should receive the message",
+    "The speed of the connection",
+    "The user's password"
+  ]}
+  answer={1}
+  explanation="An IP address finds the machine; the port identifies which program (service) on that machine should handle the traffic."
+/>
+
+<Quiz
+  question="Which protocol would you choose for a live video call where speed matters more than perfect delivery?"
+  options={["TCP", "UDP", "SSH", "HTTP"]}
+  answer={1}
+  explanation="UDP is faster and connectionless — ideal for real-time media where a late packet is useless anyway. TCP guarantees delivery but adds overhead."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="A user reports they can't reach your service. How do you approach it?">
+  Work up the layers, checking connectivity step by step:
+
+  1. **DNS** — does the hostname resolve to the right IP? (`dig`, `nslookup`)
+  2. **Reachability** — can you reach the machine at all? (`ping`)
+  3. **Port** — is the service's port open and listening? (`ss`, `telnet`, `nc`)
+  4. **Firewall / security group** — is traffic to that port allowed?
+  5. **Application** — is the process actually running and healthy?
+
+  This layered, methodical approach beats guessing and is exactly what interviewers want to hear.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand IP addresses (which machine), ports (which program), private vs public addressing, and the TCP/UDP trade-off. Next, we'll see how human-friendly names like `google.com` turn into IP addresses using DNS.
+
+<NextLesson
+  title="DNS — How Names Become Addresses"
+  href="/ultimate-devops-learning-hub/networking/dns"
+/>
