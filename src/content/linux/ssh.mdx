@@ -1,0 +1,201 @@
+---
+title: "SSH — Secure Shell"
+description: "Connect securely to remote Linux servers using SSH — the skill every DevOps engineer uses daily."
+order: 8
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="SSH — Secure Shell"
+  description="Generate keys, connect to remote servers, and copy files securely — the daily reality of managing cloud machines."
+  timeToRead="13 min"
+  icon="🔑"
+/>
+
+SSH (Secure Shell) is how DevOps engineers connect to remote servers. Every time you deploy to AWS, configure an Azure VM, or access a Kubernetes node, you use SSH.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what SSH is and how it works
+- Generate an SSH key pair
+- Connect to a remote server
+- Simplify connections with an SSH config file
+- Copy files securely with SCP
+
+---
+
+# How SSH Works
+
+SSH creates an **encrypted tunnel** between your machine and a remote server — no password is ever sent in plain text.
+
+<CommandBlock command={`Your Laptop  (SSH client)
+   ↓
+ Internet    (encrypted, port 22)
+   ↓
+Remote Linux Server  (sshd)
+   ↓
+Your terminal session`} language="text" />
+
+---
+
+# SSH Key Pairs
+
+SSH uses public/private key authentication:
+
+- **Private key** — stays on your machine. **Never share it.**
+- **Public key** — goes on the server. Safe to share.
+
+When you connect, the server challenges your client to prove it holds the private key matching the public key on file.
+
+---
+
+# Generate an SSH Key
+
+<CommandBlock command={'ssh-keygen -t ed25519 -C "your-email@example.com"'} />
+
+Accept the default location and set a passphrase. This creates two files:
+
+<CommandBlock command={`~/.ssh/id_ed25519        # private key — never share this
+~/.ssh/id_ed25519.pub    # public key — copy this to servers`} language="text" />
+
+<Terminal
+  command="cat ~/.ssh/id_ed25519.pub"
+  output="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... your-email@example.com"
+/>
+
+---
+
+# Connect to a Remote Server
+
+<CommandBlock command={`ssh username@server-ip                       # basic connection
+ssh ubuntu@54.123.45.67                      # e.g. Ubuntu on AWS EC2
+ssh -i ~/.ssh/my-key.pem ubuntu@54.123.45.67 # using an AWS .pem key`} />
+
+Copy your public key so you can log in without a password:
+
+<CommandBlock command="ssh-copy-id ubuntu@54.123.45.67" />
+
+---
+
+# SSH Config — Stop Typing Long Commands
+
+Instead of retyping addresses, define hosts in `~/.ssh/config`:
+
+<CommandBlock command={`Host myserver
+    HostName 54.123.45.67
+    User ubuntu
+    IdentityFile ~/.ssh/id_ed25519`} language="text" />
+
+Now connect with just:
+
+<CommandBlock command="ssh myserver" />
+
+---
+
+# Copy Files Securely with SCP
+
+<CommandBlock command={`scp localfile.txt ubuntu@54.123.45.67:/home/ubuntu/   # upload
+scp ubuntu@54.123.45.67:/var/log/app.log ./            # download
+scp -r ./myfolder ubuntu@54.123.45.67:/home/ubuntu/    # whole folder`} />
+
+---
+
+# Troubleshooting
+
+| Problem | Cause | Fix |
+|---|---|---|
+| `Permission denied (publickey)` | Wrong key or not copied | `ssh-copy-id` or check the `-i` path |
+| `Connection refused` | `sshd` not running / wrong port | Confirm the SSH service is running |
+| `Connection timed out` | Firewall blocking port 22 | Check the security group / firewall |
+| `Unprotected private key file` | Key permissions too open | `chmod 400 ~/.ssh/id_ed25519` |
+
+<Warning title="Protect your private key">
+If SSH refuses to use your key with an "unprotected private key" warning, tighten the permissions: `chmod 600 ~/.ssh/id_ed25519`. A private key readable by others is a security hole.
+</Warning>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Generate and Inspect a Key Pair">
+  <div slot="tasks">
+    1. Generate a key pair: `ssh-keygen -t ed25519 -C "devops-practice"`
+    2. View your public key with `cat ~/.ssh/id_ed25519.pub`
+    3. Fix permissions: `chmod 600 ~/.ssh/id_ed25519`
+    4. If you have a cloud VM, connect with `ssh -i ~/.ssh/your-key.pem ubuntu@YOUR-IP`
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="ssh-keygen -t ed25519 -C 'devops-practice' -f ~/.ssh/id_ed25519 -N '' && chmod 600 ~/.ssh/id_ed25519"
+      output={`Generating public/private ed25519 key pair.
+Your identification has been saved in /home/student/.ssh/id_ed25519
+Your public key has been saved in /home/student/.ssh/id_ed25519.pub`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which file should you NEVER share?"
+  options={["id_ed25519.pub", "id_ed25519", "config", "known_hosts"]}
+  answer={1}
+  explanation="id_ed25519 (no .pub) is your private key. Anyone who has it can impersonate you — it must stay on your machine only."
+/>
+
+<Quiz
+  question="What port does SSH use by default?"
+  options={["80", "443", "22", "3389"]}
+  answer={2}
+  explanation="SSH listens on TCP port 22 by default. (Port 3389 is RDP, 80 is HTTP, 443 is HTTPS.)"
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why is SSH key authentication preferred over passwords?">
+  Key-based authentication is both more secure and more convenient:
+
+  - **Stronger:** A 256-bit key is far harder to brute-force than a typical password.
+  - **No secret in transit:** The private key never leaves your machine — only a cryptographic proof is exchanged.
+  - **Automation-friendly:** Scripts and CI/CD systems can authenticate without embedding a password.
+  - **Revocable per key:** You can add or remove individual public keys on a server without changing a shared password.
+
+  Best practice is to disable password login entirely on production servers and allow only key-based access.
+</InterviewPrep>
+
+---
+
+# 🎉 Section Complete
+
+You've completed the **Linux** section of the Ultimate DevOps Learning Hub. You now have a solid foundation in:
+
+- Linux fundamentals and the filesystem
+- File permissions and ownership
+- Bash scripting
+- Networking and connectivity
+- SSH remote access
+
+Next, we move into version control — **Git and GitHub**.
+
+<NextLesson
+  title="Introduction to Git & GitHub"
+  href="/ultimate-devops-learning-hub/github/introduction"
+/>
