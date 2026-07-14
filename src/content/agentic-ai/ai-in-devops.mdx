@@ -1,0 +1,204 @@
+---
+title: "Agentic AI in DevOps Practice"
+description: "Put agentic AI to work: real use cases across the DevOps lifecycle, plus the guardrails that keep AI-driven automation safe."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Agentic AI in DevOps Practice"
+  description="Where AI agents genuinely help — and how to deploy them responsibly."
+  timeToRead="11 min"
+  icon="🤖"
+  section="Agentic AI"
+  sectionUrl="/agentic-ai/introduction"
+/>
+
+You understand agents, prompting, and tools. Now let's make it concrete: *where* does agentic AI actually deliver value in DevOps, and *how* do you deploy it without creating new risks? This is the practical payoff of the whole track.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Identify high-value DevOps use cases for AI agents
+- Understand the human-in-the-loop pattern
+- Apply the guardrails that make agents safe in production
+- Know how to start small and expand safely
+
+---
+
+# High-Value Use Cases
+
+Agents work best on tasks that are repetitive, data-heavy, or need fast correlation across sources:
+
+| Area | What an agent can do |
+|------|----------------------|
+| **Incident response** | Correlate alerts, logs, and metrics; propose a root cause |
+| **Log analysis** | Summarise thousands of lines into the few that matter |
+| **PR review** | Flag risky changes, missing tests, security issues |
+| **Runbook automation** | Execute documented, approved recovery steps |
+| **Infrastructure drafts** | Generate Dockerfiles, pipelines, Terraform — for human review |
+| **On-call assist** | Answer "what changed?" and "what's failing?" instantly |
+
+<Tip title="Start where mistakes are cheap">
+Begin with read-only, advisory tasks (summarising logs, suggesting fixes). They deliver value immediately with almost no risk, and build trust before you let an agent take any action.
+</Tip>
+
+---
+
+# The Human-in-the-Loop Pattern
+
+The safest and most common production pattern: the agent does the analysis and *proposes* an action; a human approves before anything changes.
+
+<CommandBlock command={`Agent: detects issue → gathers evidence → proposes fix
+Human: reviews proposal → approves or rejects
+Agent: executes ONLY approved actions → reports result`} language="text" />
+
+This captures most of the speed benefit (the agent does the tedious investigation) while a human owns every consequential decision.
+
+---
+
+# Guardrails for Production
+
+<Warning title="An acting agent is a privileged user — treat it like one">
+Any agent that can change infrastructure has the same blast radius as a human with those permissions. Apply the same discipline: least privilege, approvals, and audit.
+</Warning>
+
+The essential guardrails:
+
+- **Least privilege** — give the agent only the permissions its tasks require, nothing more.
+- **Read vs write separation** — investigation tools run freely; state-changing tools require approval.
+- **Human approval gates** — destructive or production-facing actions always wait for a human.
+- **Full audit logging** — record every tool call and decision for review.
+- **Scoped secrets** — never expose credentials to the model; keep them behind tools.
+- **Rollback ready** — ensure any action the agent takes can be reversed.
+
+---
+
+# A Realistic Example
+
+An on-call agent responding to a high-CPU alert:
+
+<CommandBlock command={`1. Alert fires: checkout-service CPU > 90%
+2. Agent (read-only): pulls metrics, recent deploys, and logs
+3. Agent correlates: CPU spike started right after deploy v1.4.2
+4. Agent proposes: "Likely a regression in v1.4.2. Recommend
+   rolling back to v1.4.1."
+5. Human reviews the evidence → approves rollback
+6. Agent executes the approved rollback → confirms CPU normalised`} language="text" />
+
+<Terminal
+  command="# Agent's summary to the on-call engineer:"
+  output={`Incident: checkout-service high CPU
+Evidence: spike began 14:02, 3 min after deploy v1.4.2
+Suspected cause: regression in v1.4.2
+Proposed action: rollback to v1.4.1  [Approve] [Reject]`}
+/>
+
+The agent did minutes of investigation instantly; the human made the call.
+
+---
+
+# Starting Small
+
+A sensible adoption path:
+
+1. **Advisory only** — the agent summarises and suggests; humans do everything.
+2. **Assisted actions** — the agent proposes, humans approve each action.
+3. **Bounded autonomy** — the agent auto-handles well-understood, low-risk, reversible tasks; everything else still needs approval.
+
+<Tip title="Trust is earned incrementally">
+Expand an agent's autonomy only as it proves reliable on a given task, and only for actions that are low-risk and reversible. There's no rush — the advisory stage alone often saves significant time.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Plan a Safe DevOps Agent">
+  <div slot="tasks">
+    1. Choose a use case (e.g. log triage for on-call)
+    2. List its tools and label each read-only or write
+    3. Define the guardrails: what needs approval, what's audited, what permissions it gets
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`Use case: on-call log triage
+Tools:
+  search_logs(query)        read-only  ✓ auto
+  get_metrics(service)      read-only  ✓ auto
+  scale_deployment(n)       write      → human approval
+Guardrails:
+  - permissions scoped to the 'staging' namespace only
+  - every tool call logged
+  - all writes require approval + are reversible`} language="text" />
+    Read freely, gate all writes, scope permissions tightly, audit everything — the core recipe for a safe agent.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the 'human-in-the-loop' pattern for DevOps agents?"
+  options={[
+    "The agent does everything with no human involvement",
+    "The agent investigates and proposes actions, but a human approves before anything changes",
+    "Humans do all the work and the agent watches",
+    "The agent only runs at night"
+  ]}
+  answer={1}
+  explanation="Human-in-the-loop means the agent handles the analysis and proposes actions, while a human reviews and approves consequential changes — capturing the speed benefit while keeping control."
+/>
+
+<Quiz
+  question="Which is the safest place to START adopting agentic AI in operations?"
+  options={[
+    "Giving it full control of production immediately",
+    "Read-only, advisory tasks like summarising logs and suggesting fixes",
+    "Deleting resources automatically",
+    "Managing all secrets"
+  ]}
+  answer={1}
+  explanation="Start with read-only, advisory tasks where mistakes are cheap. They deliver value with minimal risk and build the trust needed before granting any ability to act."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How would you responsibly introduce an AI agent into a DevOps workflow?">
+  A measured, safety-first rollout:
+
+  1. **Pick a low-risk, high-value use case** — log summarisation or incident triage, read-only to start.
+  2. **Ground it in real data** through well-defined tools; never let it guess about your systems.
+  3. **Keep humans in the loop** — the agent proposes, a human approves any change.
+  4. **Enforce guardrails** — least privilege, read/write separation, approval gates, full audit logs, scoped secrets.
+  5. **Ensure reversibility** — only allow actions you can roll back.
+  6. **Expand autonomy gradually** — grant more independence only for proven, low-risk, reversible tasks.
+
+  The theme throughout: let the agent absorb the toil and investigation, while humans retain control over consequences.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed the Agentic AI track: what agents are, prompting, tools and MCP, and now real DevOps use cases with the guardrails that make them safe. You can reason about deploying AI responsibly in operations. Finally, we tie the whole course together with security — DevSecOps.
+
+<NextLesson
+  title="Introduction to DevSecOps"
+  href="/ultimate-devops-learning-hub/devsecops/introduction"
+/>

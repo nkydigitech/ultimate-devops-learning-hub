@@ -47,25 +47,29 @@ const technologies = [
     name: "Networking",
     icon: network.src,
     level: "Beginner",
-    desc: "Understand TCP/IP, DNS, HTTP and load balancing."
+    desc: "Understand TCP/IP, DNS, HTTP and load balancing.",
+    href: withBase("/networking/introduction")
   },
   {
     name: "Docker",
     icon: docker.src,
     level: "Intermediate",
-    desc: "Build and manage containers like modern companies."
+    desc: "Build and manage containers like modern companies.",
+    href: withBase("/docker/introduction")
   },
   {
     name: "Kubernetes",
     icon: kubernetes.src,
     level: "Intermediate",
-    desc: "Deploy and scale applications in production."
+    desc: "Deploy and scale applications in production.",
+    href: withBase("/kubernetes/introduction")
   },
   {
     name: "Terraform",
     icon: terraform.src,
     level: "Intermediate",
-    desc: "Provision infrastructure as code."
+    desc: "Provision infrastructure as code.",
+    href: withBase("/terraform/introduction")
   },
   {
     name: "Ansible",
@@ -78,13 +82,15 @@ const technologies = [
     name: "Jenkins",
     icon: jenkins.src,
     level: "Intermediate",
-    desc: "Build complete CI/CD pipelines."
+    desc: "Build complete CI/CD pipelines.",
+    href: withBase("/jenkins/introduction")
   },
   {
     name: "GitHub Actions",
     icon: githubActions.src,
     level: "Intermediate",
-    desc: "Automate workflows directly inside GitHub."
+    desc: "Automate workflows directly inside GitHub.",
+    href: withBase("/github-actions/introduction")
   },
   {
     name: "AWS",
@@ -116,7 +122,8 @@ const technologies = [
     name: "DevSecOps",
     icon: devsecops.src,
     level: "Security",
-    desc: "Integrate security throughout the DevOps lifecycle."
+    desc: "Integrate security throughout the DevOps lifecycle.",
+    href: withBase("/devsecops/introduction")
   },
   {
     name: "Zipkin",
@@ -125,10 +132,11 @@ const technologies = [
     desc: "Understand distributed tracing."
   },
   {
-    name: "Claude AI",
+    name: "Agentic AI",
     icon: claude.src,
     level: "AI",
-    desc: "Build AI-powered DevOps workflows."
+    desc: "Build AI-powered, agentic DevOps workflows.",
+    href: withBase("/agentic-ai/introduction")
   },
   {
     name: "MCP",
