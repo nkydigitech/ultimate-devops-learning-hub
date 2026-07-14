@@ -1,0 +1,215 @@
+---
+title: "Automating Tasks with Python"
+description: "Put Python to work: run shell commands, work with files, call web APIs, and build a real automation script."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Automating Tasks with Python"
+  description="The DevOps payoff — scripting real work: shell commands, files, and web APIs."
+  timeToRead="15 min"
+  icon="⚙️"
+  section="Python"
+  sectionUrl="/python/introduction"
+/>
+
+Now the payoff. This lesson shows the three things DevOps scripts do constantly: **run shell commands**, **read and write files**, and **call web APIs** — then combines them into a small automation you could actually use.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Run shell commands from Python with `subprocess`
+- Read and write files safely
+- Call a REST API and parse JSON
+- Organize logic into reusable functions
+
+---
+
+# Running Shell Commands
+
+The `subprocess` module lets Python drive the same commands you'd type in Bash — while keeping Python's logic and error handling:
+
+<CommandBlock command={`import subprocess
+
+result = subprocess.run(
+    ["df", "-h", "/"],
+    capture_output=True,
+    text=True,
+)
+print(result.stdout)`} language="python" />
+
+<Warning title="Prefer a list of arguments">
+Pass the command as a **list** (`["df", "-h", "/"]`), not one big string with `shell=True`. Building shell strings from variables invites command-injection bugs — the list form is safer.
+</Warning>
+
+---
+
+# Reading and Writing Files
+
+The `with` block opens a file and closes it automatically, even if an error occurs:
+
+<CommandBlock command={`# Write a config file
+with open("report.txt", "w") as f:
+    f.write("Disk check complete\\n")
+
+# Read it back
+with open("report.txt") as f:
+    contents = f.read()
+print(contents)`} language="python" />
+
+<Tip title="Always use 'with'">
+`with open(...)` guarantees the file is closed for you. Forgetting to close files is a common source of resource leaks in long-running scripts.
+</Tip>
+
+---
+
+# Calling a Web API
+
+Most DevOps work talks to APIs (cloud providers, monitoring, chatops). The `requests` library makes it simple:
+
+<CommandBlock command={`pip3 install requests`} />
+
+<CommandBlock command={`import requests
+
+resp = requests.get("https://api.github.com/repos/python/cpython")
+resp.raise_for_status()        # fail loudly on HTTP errors
+
+data = resp.json()             # parse JSON into a dict
+print("Stars:", data["stargazers_count"])`} language="python" />
+
+<Terminal
+  command="python3 stars.py"
+  output="Stars: 62000"
+/>
+
+---
+
+# Functions: Reusable Building Blocks
+
+Wrap logic in functions so it can be named, reused, and tested:
+
+<CommandBlock command={`def disk_usage(path="/"):
+    result = subprocess.run(
+        ["df", "-h", path],
+        capture_output=True, text=True,
+    )
+    return result.stdout
+
+print(disk_usage("/"))`} language="python" />
+
+---
+
+# Putting It Together: A Mini Health Check
+
+<CommandBlock command={`import subprocess
+
+def check(name, command):
+    result = subprocess.run(command, capture_output=True, text=True)
+    ok = result.returncode == 0
+    print(f"[{'OK' if ok else 'FAIL'}] {name}")
+    return ok
+
+checks = {
+    "disk":   ["df", "-h", "/"],
+    "uptime": ["uptime"],
+    "memory": ["free", "-h"],
+}
+
+results = [check(name, cmd) for name, cmd in checks.items()]
+print(f"\\n{sum(results)}/{len(results)} checks passed")`} language="python" />
+
+<Terminal
+  command="python3 healthcheck.py"
+  output={`[OK] disk
+[OK] uptime
+[OK] memory
+
+3/3 checks passed`}
+/>
+
+This one script combines everything: functions, a dictionary, a loop, `subprocess`, and f-strings.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Build a Log Line Counter">
+  <div slot="tasks">
+    1. Write a function `count_errors(path)` that opens a log file and counts lines containing the word `"ERROR"`.
+    2. Return the count and print it with an f-string.
+    3. **Bonus:** call a public API with `requests` and print one field from the JSON response.
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`def count_errors(path):
+    with open(path) as f:
+        return sum(1 for line in f if "ERROR" in line)
+
+n = count_errors("app.log")
+print(f"Found {n} errors")`} language="python" />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which module lets a Python script run shell commands like `df` or `uptime`?"
+  options={["requests", "subprocess", "json", "os.path"]}
+  answer={1}
+  explanation="`subprocess.run()` executes external commands and captures their output — the standard way to drive shell tools from Python."
+/>
+
+<Quiz
+  question="Why is `with open(...) as f:` preferred for working with files?"
+  options={[
+    "It makes files load faster",
+    "It automatically closes the file, even if an error occurs",
+    "It is the only way to read a file in Python",
+    "It encrypts the file"
+  ]}
+  answer={1}
+  explanation="A `with` block is a context manager that guarantees the file is closed when the block ends, preventing resource leaks."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How would you approach writing a Python script to automate a repetitive operations task?">
+  A structured answer:
+
+  1. **Clarify the goal and inputs/outputs** — what triggers it, what data it needs, what success looks like.
+  2. **Break it into functions** — each doing one thing (fetch data, transform, act, report), so it's testable and readable.
+  3. **Use the right tools** — `subprocess` for shell commands, `requests` for APIs, standard library for files/JSON. Avoid reinventing what a library already does.
+  4. **Handle errors loudly** — check return codes and use `raise_for_status()`; a silent failure in automation is worse than a crash.
+  5. **Log what it does** — clear output so humans can see what happened when it runs unattended.
+  6. **Make it configurable** — accept arguments/env vars instead of hardcoding values, so the same script works across environments.
+
+  This shows you write automation that's maintainable and safe to run unattended, not just a one-off hack.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now run shell commands, work with files, call APIs, and structure scripts with functions — the real toolkit of Python automation. Next, we scale automation across many servers at once with **Ansible**... but first, the cloud that Ansible so often manages: **AWS**.
+
+<NextLesson
+  title="Introduction to AWS"
+  href="/ultimate-devops-learning-hub/aws/introduction"
+/>

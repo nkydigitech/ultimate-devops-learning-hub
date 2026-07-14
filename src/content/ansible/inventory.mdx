@@ -1,0 +1,195 @@
+---
+title: "Ansible Inventory & Ad-Hoc Commands"
+description: "Define the servers Ansible manages with an inventory, then run one-off commands across all of them with ad-hoc modules."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Ansible Inventory & Ad-Hoc Commands"
+  description="Tell Ansible which servers to manage, then run instant commands across all of them."
+  timeToRead="12 min"
+  icon="📋"
+  section="Ansible"
+  sectionUrl="/ansible/introduction"
+/>
+
+Before Ansible can configure servers, it needs to know they exist. That's the **inventory**. Once it does, **ad-hoc commands** let you run a single action across every server instantly — perfect for quick checks before you write full playbooks.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Write an inventory file and organize hosts into groups
+- Test connectivity with the `ping` module
+- Run ad-hoc commands across servers
+- Understand when to use ad-hoc vs a playbook
+
+---
+
+# The Inventory File
+
+An inventory lists your managed nodes, optionally grouped. Here's a simple `inventory.ini`:
+
+<CommandBlock command={`[web]
+web-01 ansible_host=203.0.113.10
+web-02 ansible_host=203.0.113.11
+
+[db]
+db-01 ansible_host=203.0.113.20
+
+[all:vars]
+ansible_user=ubuntu`} language="ini" />
+
+- `[web]` and `[db]` are **groups** — you can target a whole group at once.
+- `[all:vars]` sets variables (like the SSH user) for every host.
+
+<Tip title="Groups are how you target servers">
+Grouping lets you say "run this on all web servers" or "only the database". Real inventories group by role (web/db/cache), environment (prod/staging), or region.
+</Tip>
+
+---
+
+# Test Connectivity: the ping Module
+
+The first thing to run against any new inventory — it confirms Ansible can reach and authenticate to each host:
+
+<CommandBlock command={`ansible all -i inventory.ini -m ping`} />
+
+<Terminal
+  command="ansible web -i inventory.ini -m ping"
+  output={`web-01 | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+web-02 | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}`}
+/>
+
+<Warning title="Ansible ping is not ICMP">
+The `ping` module doesn't send network pings — it connects over SSH and checks Python is usable on the target. A `SUCCESS ... "pong"` means the whole connection + auth path works.
+</Warning>
+
+---
+
+# Ad-Hoc Commands
+
+An ad-hoc command runs a **single module** against hosts without writing a playbook. The shape is:
+
+<CommandBlock command={`ansible <group> -i inventory.ini -m <module> -a "<arguments>"`} language="text" />
+
+Some useful examples:
+
+<CommandBlock command={`# Check uptime on all web servers
+ansible web -i inventory.ini -m command -a "uptime"
+
+# Check disk space everywhere
+ansible all -i inventory.ini -m command -a "df -h /"
+
+# Install nginx (needs sudo -> --become)
+ansible web -i inventory.ini -m apt -a "name=nginx state=present" --become`} />
+
+<Tip title="--become = sudo">
+`--become` tells Ansible to escalate privileges (run as root via sudo) for tasks that need it, like installing packages or editing system files.
+</Tip>
+
+---
+
+# Ad-Hoc vs Playbook
+
+| Use ad-hoc when... | Use a playbook when... |
+|--------------------|------------------------|
+| One quick action (restart, check) | Multiple steps that belong together |
+| Exploring / troubleshooting | You want it repeatable and version-controlled |
+| No need to keep it | It's part of your standard setup |
+
+Ad-hoc is the "quick command" mode; playbooks (next lesson) are the durable, reusable mode.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Build an Inventory and Ping It">
+  <div slot="tasks">
+    1. Create `inventory.ini` with a `[web]` group containing one or two hosts you can SSH to (or use `localhost` with `ansible_connection=local`).
+    2. Run the `ping` module against the group and confirm `SUCCESS`.
+    3. Run an ad-hoc `command` module to get `uptime` from the hosts.
+    4. Try an ad-hoc command that needs `--become`.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command={`ansible all -i "localhost," -c local -m ping`}
+      output={`localhost | SUCCESS => {
+    "ping": "pong"
+}`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the purpose of an Ansible inventory file?"
+  options={[
+    "It stores the output of every command",
+    "It lists the managed hosts (and groups) Ansible can target",
+    "It contains the Python code Ansible runs",
+    "It is a log of failed connections"
+  ]}
+  answer={1}
+  explanation="The inventory defines which hosts exist and how they're grouped, so you can target individual servers or whole groups."
+/>
+
+<Quiz
+  question="When is an ad-hoc command the better choice over a playbook?"
+  options={[
+    "For a complex multi-step setup you'll reuse",
+    "For a quick one-off action like checking uptime or restarting a service",
+    "Whenever you need version control",
+    "Ad-hoc commands can't target multiple servers"
+  ]}
+  answer={1}
+  explanation="Ad-hoc commands are ideal for quick, one-off actions. For repeatable, multi-step, version-controlled setups you write a playbook."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How do you organize an Ansible inventory for a real environment?">
+  A practical answer covers structure and separation:
+
+  - **Group by role:** `[web]`, `[db]`, `[cache]` so you can target servers by what they do.
+  - **Separate environments:** keep `production` and `staging` inventories apart (separate files or directories) so a command can never accidentally hit prod when you meant staging.
+  - **Use group variables:** put shared settings (SSH user, ports, package versions) in `group_vars/` rather than repeating them per host.
+  - **Consider dynamic inventory:** in the cloud, servers come and go — a dynamic inventory plugin (for AWS, Azure, etc.) generates the host list automatically from the provider's API instead of a static file.
+
+  The goal is an inventory that's clearly grouped, keeps environments isolated, and stays accurate as infrastructure changes.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now define an inventory, verify connectivity with `ping`, and run ad-hoc commands across groups of servers. Next, we capture multi-step configuration as reusable **playbooks** — the heart of Ansible.
+
+<NextLesson
+  title="Ansible Playbooks"
+  href="/ultimate-devops-learning-hub/ansible/playbooks"
+/>

@@ -1,0 +1,217 @@
+---
+title: "Ansible Playbooks"
+description: "Capture multi-step server configuration as reusable, version-controlled YAML playbooks — the heart of Ansible."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Ansible Playbooks"
+  description="Describe the full desired state of a server in readable YAML — repeatable, shareable, version-controlled."
+  timeToRead="15 min"
+  icon="📖"
+  section="Ansible"
+  sectionUrl="/ansible/introduction"
+/>
+
+A **playbook** is a YAML file that describes the desired state of your servers as an ordered list of tasks. Unlike ad-hoc commands, playbooks are reusable, readable, and version-controlled — this is how Ansible is used in real projects.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Read and write playbook YAML structure
+- Use modules, variables, and handlers
+- Run a playbook and read its output
+- Understand idempotency in practice
+
+---
+
+# Anatomy of a Playbook
+
+Here's a complete playbook that installs and starts nginx on all web servers — `webserver.yml`:
+
+<CommandBlock command={`---
+- name: Configure web servers
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Ensure nginx is running and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: true`} language="yaml" />
+
+Reading it top to bottom:
+
+- **`hosts: web`** — target the `web` group from the inventory.
+- **`become: true`** — run with sudo.
+- **`tasks:`** — an ordered list; each task calls a **module** (`apt`, `service`) with parameters.
+- **`name:`** — a human-readable label shown in the output.
+
+<Warning title="YAML is whitespace-sensitive">
+Like Python, YAML uses indentation for structure — always spaces, never tabs. A single misaligned line will cause a parse error. Keep indentation consistent (2 spaces per level is the convention).
+</Warning>
+
+---
+
+# Run the Playbook
+
+<CommandBlock command={`ansible-playbook -i inventory.ini webserver.yml`} />
+
+<Terminal
+  command="ansible-playbook -i inventory.ini webserver.yml"
+  output={`PLAY [Configure web servers] **************************
+
+TASK [Install nginx] **********************************
+changed: [web-01]
+changed: [web-02]
+
+TASK [Ensure nginx is running and enabled] ************
+ok: [web-01]
+ok: [web-02]
+
+PLAY RECAP ********************************************
+web-01  : ok=3  changed=1  unreachable=0  failed=0
+web-02  : ok=3  changed=1  unreachable=0  failed=0`}
+/>
+
+Run it **again** and watch `changed` drop to `0` — everything is already in the desired state. That's **idempotency** in action.
+
+---
+
+# Variables and Handlers
+
+**Variables** keep playbooks flexible:
+
+<CommandBlock command={`- name: Configure web servers
+  hosts: web
+  become: true
+  vars:
+    package_name: nginx
+
+  tasks:
+    - name: Install the web server
+      apt:
+        name: "{{ package_name }}"
+        state: present`} language="yaml" />
+
+**Handlers** run only when notified by a changed task — ideal for restarting a service *only* when its config actually changed:
+
+<CommandBlock command={`  tasks:
+    - name: Copy nginx config
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+      notify: Restart nginx
+
+  handlers:
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted`} language="yaml" />
+
+<Tip title="Why handlers matter">
+Without a handler you'd restart nginx on every run. With one, nginx restarts **only** when the config file actually changed — no needless service disruptions. That's the idempotent mindset applied to side effects.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Write Your First Playbook">
+  <div slot="tasks">
+    1. Write `site.yml` targeting your `web` group (or localhost) that installs a package (e.g. `git` or `htop`).
+    2. Add a second task that ensures a service is `started`.
+    3. Run it with `ansible-playbook` and read the PLAY RECAP.
+    4. Run it a **second** time and confirm `changed=0` — proving idempotency.
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`---
+- name: Base setup
+  hosts: web
+  become: true
+  tasks:
+    - name: Install htop
+      apt:
+        name: htop
+        state: present
+        update_cache: true`} language="yaml" />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="In a playbook, when does a handler run?"
+  options={[
+    "Every time the playbook runs",
+    "Only when a task notifies it after making a change",
+    "Before any tasks run",
+    "Only if the playbook fails"
+  ]}
+  answer={1}
+  explanation="Handlers run only when notified by a task that reported a change — e.g. restart a service only when its config file actually changed."
+/>
+
+<Quiz
+  question="On the second run of an unchanged playbook, what do you expect in the PLAY RECAP?"
+  options={[
+    "failed=1 for every host",
+    "changed=0 — nothing needed changing",
+    "The playbook refuses to run twice",
+    "All tasks are skipped permanently"
+  ]}
+  answer={1}
+  explanation="Because tasks are idempotent, a second run against already-configured hosts reports changed=0 — Ansible only acts when reality differs from the desired state."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What makes a good, maintainable Ansible playbook?">
+  Several qualities interviewers value:
+
+  - **Idempotent by design:** use modules (`apt`, `service`, `copy`) that describe desired state rather than `command`/`shell` running raw commands — so re-runs are safe.
+  - **Descriptive `name:` on every task:** the output becomes self-documenting and easy to debug.
+  - **Variables over hardcoding:** put values in `vars`, `group_vars`, or `host_vars` so one playbook works across environments.
+  - **Handlers for restarts:** restart services only when something actually changed.
+  - **Roles for structure:** as playbooks grow, split reusable pieces into **roles** (a standard directory layout for tasks, handlers, templates, and variables) so they can be shared and reused.
+  - **Version-controlled and tested:** keep playbooks in Git and validate with `--check` (dry run) before applying to production.
+
+  In short: declarative, readable, parameterised, and safe to re-run.
+</InterviewPrep>
+
+---
+
+# 🎉 You've Completed the Core Curriculum
+
+Congratulations — you've worked through **Linux**, **Git & GitHub**, **Python**, **AWS**, **Azure**, and **Ansible**. You can now operate Linux servers, version and collaborate on code, script automation in Python, deploy across the two largest clouds, and configure fleets of servers with Ansible. That's a genuinely strong DevOps foundation.
+
+From the homepage roadmap, natural next steps are **Docker**, **Kubernetes**, **Terraform**, and **CI/CD** — all ready to be built in this same format whenever you are.
+
+<Tip title="Make it real">
+Tie it all together in one project: write app code, version it in **GitHub**, script the setup in **Python**, provision a server on **AWS** or **Azure**, and use an **Ansible** playbook to configure it. Doing the full loop once teaches more than reading each topic separately.
+</Tip>

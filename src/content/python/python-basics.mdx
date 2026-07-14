@@ -1,0 +1,201 @@
+---
+title: "Python Basics — Variables, Types & Control Flow"
+description: "The core building blocks of Python: variables, data types, collections, conditionals, and loops."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Python Basics — Variables, Types & Control Flow"
+  description="The essential syntax you'll use in every automation script you write."
+  timeToRead="14 min"
+  icon="🧱"
+  section="Python"
+  sectionUrl="/python/introduction"
+/>
+
+Every automation script is built from the same handful of ideas: storing values, choosing between data types, grouping data in collections, making decisions, and repeating work. This lesson covers all of them.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Use variables and Python's core data types
+- Work with lists and dictionaries
+- Write conditionals (`if` / `elif` / `else`)
+- Loop with `for` and `while`
+
+---
+
+# Variables and Data Types
+
+Python figures out the type for you — no declarations needed:
+
+<CommandBlock command={`name = "web-server-01"     # string
+cpu_count = 4              # integer
+load_average = 0.75        # float
+is_healthy = True          # boolean
+
+print(name, cpu_count, load_average, is_healthy)`} language="python" />
+
+<Terminal
+  command="python3 basics.py"
+  output="web-server-01 4 0.75 True"
+/>
+
+---
+
+# Collections: Lists and Dictionaries
+
+These two structures carry most DevOps data (servers, configs, API responses).
+
+**A list** — an ordered sequence:
+
+<CommandBlock command={`servers = ["web-01", "web-02", "db-01"]
+
+print(servers[0])        # web-01
+print(len(servers))      # 3
+servers.append("web-03") # add one`} language="python" />
+
+**A dictionary** — key/value pairs (just like JSON):
+
+<CommandBlock command={`server = {
+    "name": "web-01",
+    "cpu": 4,
+    "region": "eu-west-1",
+}
+
+print(server["region"])   # eu-west-1`} language="python" />
+
+<Tip title="Dictionaries = JSON">
+API responses and config files are almost always key/value data. Python dictionaries map onto JSON directly, which is why they show up constantly in DevOps scripts.
+</Tip>
+
+---
+
+# Making Decisions: if / elif / else
+
+<CommandBlock command={`load = 0.85
+
+if load > 0.9:
+    print("CRITICAL: scale up now")
+elif load > 0.7:
+    print("WARNING: load is high")
+else:
+    print("OK")`} language="python" />
+
+<Warning title="Indentation is the syntax">
+Python has no braces — **indentation defines blocks**. Use 4 spaces consistently. Mixing tabs and spaces is the classic beginner error and will raise an `IndentationError`.
+</Warning>
+
+---
+
+# Loops
+
+**Loop over a list** with `for`:
+
+<CommandBlock command={`servers = ["web-01", "web-02", "db-01"]
+
+for server in servers:
+    print(f"Checking {server}...")`} language="python" />
+
+<Terminal
+  command="python3 loop.py"
+  output={`Checking web-01...
+Checking web-02...
+Checking db-01...`}
+/>
+
+**Repeat while a condition holds** with `while`:
+
+<CommandBlock command={`attempts = 0
+while attempts < 3:
+    print(f"Retry {attempts + 1}")
+    attempts += 1`} language="python" />
+
+<Tip title="f-strings">
+`f"Checking {server}"` is an f-string — it drops variables straight into text. It's the cleanest way to build log lines and messages, and you'll use it everywhere.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Server Health Reporter">
+  <div slot="tasks">
+    1. Create a list of 3 server names.
+    2. Loop over them and print `"<name> is being checked"` using an f-string.
+    3. Make a dictionary describing one server (name, cpu, region) and print its region.
+    4. Add an `if/else` that prints `"scale up"` when a `load` variable is above `0.8`.
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`servers = ["web-01", "web-02", "db-01"]
+for s in servers:
+    print(f"{s} is being checked")
+
+box = {"name": "web-01", "cpu": 4, "region": "eu-west-1"}
+print(box["region"])
+
+load = 0.92
+print("scale up" if load > 0.8 else "ok")`} language="python" />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which Python data structure best represents a JSON object with key/value pairs?"
+  options={["A list", "A dictionary", "A string", "A boolean"]}
+  answer={1}
+  explanation="A dictionary stores key/value pairs and maps directly onto a JSON object — which is why it's everywhere in DevOps API and config work."
+/>
+
+<Quiz
+  question="What defines a block of code in Python (e.g. the body of an if statement)?"
+  options={[
+    "Curly braces { }",
+    "The 'end' keyword",
+    "Indentation (whitespace)",
+    "Semicolons"
+  ]}
+  answer={2}
+  explanation="Python uses indentation to define blocks. Consistent 4-space indentation is required; mixing tabs and spaces causes errors."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What's the difference between a list and a dictionary, and when would you use each?">
+  Both are core Python collections but serve different purposes:
+
+  - **List** — an *ordered* sequence accessed by numeric index (`servers[0]`). Use it when order matters or you just have a collection of similar items to iterate over (a list of hostnames, a list of log lines).
+  - **Dictionary** — *key/value* pairs accessed by key (`server["region"]`). Use it when each item has named attributes, or to model structured data like a JSON API response or a config object.
+
+  In practice you often combine them — for example a **list of dictionaries** to represent many servers, each with its own name/cpu/region. That structure is exactly what you get back from most cloud APIs.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've covered variables, data types, lists, dictionaries, conditionals, and loops — the foundation of every script. Next, we put it to work **automating real DevOps tasks**.
+
+<NextLesson
+  title="Automating Tasks with Python"
+  href="/ultimate-devops-learning-hub/python/automation"
+/>

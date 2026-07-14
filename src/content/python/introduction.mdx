@@ -1,0 +1,172 @@
+---
+title: "Introduction to Python for DevOps"
+description: "Why Python is the go-to language for DevOps automation — and how to install it and run your first script."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Python for DevOps"
+  description="The most widely used language for automation, tooling, and glue code in DevOps."
+  timeToRead="10 min"
+  icon="🐍"
+  section="Python"
+  sectionUrl="/python/introduction"
+/>
+
+**Python** is the default language of DevOps automation. It's readable, runs everywhere, and has libraries for almost everything — talking to cloud APIs, parsing logs, calling web services, and wiring tools together. If Bash starts feeling painful, Python is the next step up.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand why DevOps engineers reach for Python
+- Install Python and check the version
+- Run code interactively and from a file
+- Write and run your first script
+
+---
+
+# Why Python for DevOps?
+
+You already know Bash from the Linux section. Bash is perfect for short command sequences, but it gets messy fast for anything with logic, data, or APIs. Python shines exactly there:
+
+| Task | Bash | Python |
+|------|------|--------|
+| Chain a few commands | ✅ Great | Overkill |
+| Parse JSON from an API | 😖 Painful | ✅ Built-in |
+| Loops with real data structures | 😖 Clunky | ✅ Clean |
+| Call AWS/Azure APIs | ❌ | ✅ (SDKs) |
+| Readable by the whole team | ⚠️ | ✅ |
+
+<Tip title="Bash and Python are teammates, not rivals">
+A good DevOps engineer uses Bash for quick glue and Python when there's real logic or data involved. Knowing when to switch is a skill in itself.
+</Tip>
+
+---
+
+# Install Python
+
+Most Linux systems and macOS already ship with Python 3. Check first:
+
+<CommandBlock command={`python3 --version
+pip3 --version`} />
+
+<Terminal
+  command="python3 --version"
+  output="Python 3.12.3"
+/>
+
+If it's missing on Ubuntu/WSL:
+
+<CommandBlock command={`sudo apt update && sudo apt install -y python3 python3-pip`} />
+
+<Warning title="Use python3, not python">
+On many systems `python` still points to old Python 2 (or nothing at all). Always use `python3` and `pip3` to be safe.
+</Warning>
+
+---
+
+# Two Ways to Run Python
+
+**1. The interactive shell (REPL)** — great for quick experiments:
+
+<Terminal
+  command="python3"
+  output={`>>> 2 + 2
+4
+>>> print("Hello, DevOps")
+Hello, DevOps
+>>> exit()`}
+/>
+
+**2. A script file** — how real automation lives. Create `hello.py`:
+
+<CommandBlock command={`print("Hello, DevOps!")
+print("Python is running from a file.")`} language="python" />
+
+Then run it:
+
+<Terminal
+  command="python3 hello.py"
+  output={`Hello, DevOps!
+Python is running from a file.`}
+/>
+
+---
+
+# 🧪 Hands-on
+
+<Exercise title="Your First Python Script">
+  <div slot="tasks">
+    1. Confirm Python 3 is installed (`python3 --version`).
+    2. Open the interactive shell and calculate `24 * 60 * 60` (seconds in a day).
+    3. Create a file `server.py` that prints your name and a short message.
+    4. Run it with `python3 server.py`.
+  </div>
+
+  <div slot="solution">
+    <Terminal
+      command="python3 -c 'print(24*60*60)'"
+      output="86400"
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why do DevOps engineers often prefer Python over Bash for complex tasks?"
+  options={[
+    "Python runs faster than every other language",
+    "Python handles data, logic, and APIs far more cleanly than Bash",
+    "Bash cannot run on Linux servers",
+    "Python does not need to be installed"
+  ]}
+  answer={1}
+  explanation="Bash is great for short command sequences, but Python handles data structures, logic, and API calls far more cleanly — which is most of real automation work."
+/>
+
+<Quiz
+  question="Which command correctly checks the installed Python 3 version?"
+  options={["python --v", "python3 --version", "py version", "pip list python"]}
+  answer={1}
+  explanation="`python3 --version` prints the installed Python 3 version. Prefer `python3`/`pip3` so you never accidentally hit legacy Python 2."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="When would you choose Python over a shell script for automation?">
+  A strong answer shows judgement rather than dogma:
+
+  - **Use a shell script** for short, linear sequences of existing CLI commands — deploy steps, quick file operations, cron one-liners.
+  - **Reach for Python** when the task involves real logic (conditionals, loops over structured data), parsing formats like JSON/YAML, calling REST APIs or cloud SDKs, error handling, or code that other engineers must maintain.
+
+  I also consider **maintainability**: once a Bash script grows past ~50 lines or needs functions and data structures, Python is usually clearer and easier for a team to work on. The goal is the right tool for the job, not using one language for everything.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now know why Python is central to DevOps, how to install it, and how to run code both interactively and from a file. Next, we cover the **language basics** — variables, data types, and control flow.
+
+<NextLesson
+  title="Python Basics — Variables, Types & Control Flow"
+  href="/ultimate-devops-learning-hub/python/python-basics"
+/>
