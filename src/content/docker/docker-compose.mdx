@@ -1,0 +1,207 @@
+---
+title: "Multi-Container Apps with Docker Compose"
+description: "Run an entire application stack — app, database, cache — with a single command using Docker Compose."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Multi-Container Apps with Docker Compose"
+  description="Define and run your whole stack from one file, with one command."
+  timeToRead="10 min"
+  icon="🐳"
+  section="Docker"
+  sectionUrl="/docker/introduction"
+/>
+
+Real applications aren't one container — they're an app **plus** a database, maybe a cache, maybe a queue. Starting each by hand with long `docker run` commands is error-prone. **Docker Compose** lets you describe the whole stack in one YAML file and start it all with a single command.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what Docker Compose solves
+- Read and write a `docker-compose.yml` file
+- Connect multiple services together
+- Manage the whole stack with `compose up` and `down`
+
+---
+
+# Why Compose?
+
+Without Compose, launching an app + database means several long commands, a shared network, and correct startup order — every single time. Compose captures all of that in a file you can version-control and share.
+
+<Tip title="The one-line version">
+Compose is a recipe for your *whole application*: every service, its config, and how they connect — reproducible with one command.
+</Tip>
+
+---
+
+# A Compose File, Explained
+
+Here's a typical stack: a web app talking to a PostgreSQL database.
+
+<CommandBlock command={`services:
+  web:
+    build: .                 # build from the local Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://user:pass@db:5432/app
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:`} language="yaml" />
+
+Key ideas:
+
+- Each entry under `services` is a container.
+- `depends_on` controls startup order.
+- The web app reaches the database using the **service name** `db` as the hostname — Compose creates a private network where services find each other by name.
+- The named volume `pgdata` keeps database data safe across restarts.
+
+<Warning title="Never commit real secrets">
+The passwords above are fine for a local demo, but never put real credentials in a committed Compose file. Use a `.env` file (git-ignored) or a secrets manager for anything real.
+</Warning>
+
+---
+
+# Running the Stack
+
+| Command | What it does |
+|---------|--------------|
+| `docker compose up -d` | Build and start all services (detached) |
+| `docker compose ps` | List the stack's containers |
+| `docker compose logs -f` | Follow logs from all services |
+| `docker compose down` | Stop and remove everything |
+| `docker compose down -v` | ...and delete the volumes too |
+
+<Terminal
+  command="docker compose up -d"
+  output={`[+] Running 3/3
+ ✔ Network app_default    Created
+ ✔ Container app-db-1      Started
+ ✔ Container app-web-1     Started`}
+/>
+
+One command brought up a private network, the database, and the web app in the right order.
+
+---
+
+# Service Discovery by Name
+
+This is the part that trips up beginners: inside a Compose network, you connect to another service by its **service name**, not `localhost`.
+
+<CommandBlock command={`# Correct — 'db' is the service name
+DATABASE_URL=postgres://user:pass@db:5432/app
+
+# Wrong — localhost points at the app's own container
+DATABASE_URL=postgres://user:pass@localhost:5432/app`} language="bash" />
+
+<Tip title="Remember">
+Each container has its own `localhost`. To reach another container, use its **service name** as the hostname.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Stand Up an App + Redis Stack">
+  <div slot="tasks">
+    1. Write a `docker-compose.yml` with a `web` service (nginx) and a `cache` service (redis)
+    2. Start the stack in detached mode
+    3. Confirm both containers are running, then tear it all down
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`services:
+  web:
+    image: nginx
+    ports:
+      - "8080:80"
+  cache:
+    image: redis:alpine`} language="yaml" />
+    <Terminal
+      command="docker compose up -d && docker compose ps && docker compose down"
+      output={`✔ Container proj-cache-1  Started
+✔ Container proj-web-1    Started
+NAME            IMAGE          STATUS
+proj-cache-1    redis:alpine   Up
+proj-web-1      nginx          Up
+✔ Removed`}
+    />
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Inside a Docker Compose network, how does the web service connect to a database service named 'db'?"
+  options={[
+    "Using localhost",
+    "Using the service name 'db' as the hostname",
+    "Using the database's public IP",
+    "It can't — they're isolated"
+  ]}
+  answer={1}
+  explanation="Compose creates a private network where services reach each other by service name. So the web app connects to 'db', not localhost."
+/>
+
+<Quiz
+  question="Which command stops the stack AND deletes its named volumes?"
+  options={[
+    "docker compose down",
+    "docker compose stop",
+    "docker compose down -v",
+    "docker compose rm"
+  ]}
+  answer={2}
+  explanation="docker compose down removes containers and networks; adding -v also removes the named volumes, deleting persisted data."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="When would you use Docker Compose, and when would you reach for Kubernetes instead?">
+  They serve different scales:
+
+  - **Docker Compose** is ideal for **local development** and simple single-host deployments. It's simple, fast, and reproducible — perfect for spinning up your full stack on a laptop or a CI runner.
+  - **Kubernetes** is for **production at scale**: multiple hosts, automatic scaling, self-healing, rolling updates, and service discovery across a cluster.
+
+  A common path is: develop with Compose, then deploy to Kubernetes. Understanding Compose first makes Kubernetes concepts much easier to grasp — which is exactly where we go next.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed the Docker track: containers, images, everyday commands, writing Dockerfiles, and orchestrating multi-container stacks with Compose. You can now package and run whole applications reproducibly. Next, we scale up to running containers across a cluster with Kubernetes.
+
+<NextLesson
+  title="Introduction to Kubernetes"
+  href="/ultimate-devops-learning-hub/kubernetes/introduction"
+/>

@@ -1,0 +1,194 @@
+---
+title: "Introduction to DevSecOps"
+description: "Understand DevSecOps — building security into every stage of the DevOps lifecycle by shifting security left."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to DevSecOps"
+  description="Security isn't a final gate — it's built into every step."
+  timeToRead="9 min"
+  icon="🔒"
+  section="DevSecOps"
+  sectionUrl="/devsecops/introduction"
+/>
+
+Traditionally, security was a checkpoint at the very end — a team that reviewed software just before release and often said "no." That's too slow and too late. **DevSecOps** weaves security into every stage of development and operations, making it everyone's responsibility from the first line of code.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand what DevSecOps is and why it emerged
+- Understand the "shift left" principle
+- Know the CIA triad — the foundation of security
+- See where security fits across the DevOps pipeline
+
+---
+
+# What Is DevSecOps?
+
+DevSecOps = **Development + Security + Operations**. It extends DevOps by making security a shared, continuous, automated concern — not a separate team's problem at the end.
+
+<Tip title="The one-line version">
+DevSecOps means baking security *into* the pipeline instead of bolting it on at the end. Everyone owns security, and it's automated wherever possible.
+</Tip>
+
+---
+
+# Shift Left
+
+The core idea is **"shift left"**: move security earlier in the timeline (to the *left* on a pipeline diagram), closer to where code is written.
+
+<CommandBlock command={`Traditional:  Code → Build → Test → Deploy → [Security] ← too late!
+
+DevSecOps:    [Security at every step]
+              Code → Build → Test → Deploy
+                ↑      ↑       ↑        ↑
+              scan   scan    scan     monitor`} language="text" />
+
+Why it matters: a vulnerability caught while coding costs almost nothing to fix. The same flaw found in production can mean an incident, a breach, and enormous cost.
+
+<Warning title="The cost curve is real">
+Fixing a security issue gets exponentially more expensive the later it's found. A flaw caught in a pull request is a code review comment; the same flaw in production can be a data breach. Shifting left is about economics as much as safety.
+</Warning>
+
+---
+
+# The CIA Triad
+
+All of security rests on three goals:
+
+| Principle | Meaning | Example control |
+|-----------|---------|-----------------|
+| **Confidentiality** | Only authorised people can access data | Encryption, access control |
+| **Integrity** | Data isn't tampered with | Checksums, signed artifacts |
+| **Availability** | Systems stay up and reachable | Redundancy, DDoS protection |
+
+Every security measure you'll learn serves one or more of these.
+
+---
+
+# Security Across the Pipeline
+
+DevSecOps adds an automated security activity at each stage:
+
+| Stage | Security activity |
+|-------|-------------------|
+| **Code** | Secret scanning, secure-coding linters |
+| **Build** | Dependency (SCA) scanning, SAST |
+| **Test** | DAST — test the running app |
+| **Package** | Container image scanning, image signing |
+| **Deploy** | Policy checks, least-privilege config |
+| **Operate** | Runtime monitoring, patching, audit logs |
+
+<Tip title="Automate, don't gate">
+The goal isn't to slow delivery with manual reviews — it's to automate security checks so they run on every change, giving fast feedback without becoming a bottleneck.
+</Tip>
+
+---
+
+# A Quick Taste
+
+Security tooling drops right into your existing pipeline. For example, scanning dependencies for known vulnerabilities:
+
+<Terminal
+  command="npm audit --production"
+  output={`# npm audit report
+
+lodash  <4.17.21
+Severity: high
+Prototype Pollution — https://github.com/advisories/GHSA-...
+fix available via \`npm audit fix\`
+
+1 high severity vulnerability`}
+/>
+
+One command surfaces a known-vulnerable dependency *before* it ships — exactly the kind of automated, shift-left check DevSecOps is built on.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Map Security onto a Pipeline">
+  <div slot="tasks">
+    1. Take a basic pipeline: Code → Build → Test → Deploy → Operate
+    2. Add at least one automated security activity to each stage
+    3. Explain why finding an issue at "Code" is cheaper than at "Operate"
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`Code    → secret scanning + secure-coding lint
+Build   → dependency (SCA) scan + SAST
+Test    → DAST against the running app
+Deploy  → image scan + policy checks
+Operate → runtime monitoring + patching`} language="text" />
+    A flaw at "Code" is fixed in seconds by the author; the same flaw at "Operate" may already be exploited — costing an incident, not a code review comment.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What does 'shift left' mean in DevSecOps?"
+  options={[
+    "Moving servers to another region",
+    "Introducing security earlier in the development lifecycle, closer to when code is written",
+    "Deploying only on the left half of the pipeline",
+    "Removing security checks"
+  ]}
+  answer={1}
+  explanation="Shift left means moving security activities earlier (leftward) in the pipeline, catching issues while coding and building — when they're cheapest and easiest to fix."
+/>
+
+<Quiz
+  question="Which are the three principles of the CIA triad?"
+  options={[
+    "Code, Integration, Automation",
+    "Confidentiality, Integrity, Availability",
+    "Containers, Infrastructure, APIs",
+    "Compliance, Insurance, Auditing"
+  ]}
+  answer={1}
+  explanation="The CIA triad is Confidentiality (only authorised access), Integrity (data isn't tampered with), and Availability (systems stay up) — the foundation all security controls serve."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What is DevSecOps and why did it become necessary?">
+  DevSecOps integrates security into DevOps so it's continuous, automated, and shared, rather than a final manual gate. It became necessary because:
+
+  - **Speed exposed the old model** — releasing many times a day makes an end-of-cycle security review impossible.
+  - **Cost of late fixes** — vulnerabilities are exponentially more expensive to fix the later they're found.
+  - **Rising threats** — software supply chains and cloud infrastructure created new attack surfaces.
+  - **Shared responsibility** — security can't be one team's job when everyone ships code continuously.
+
+  In practice it means automated scanning at every pipeline stage (secrets, dependencies, SAST, DAST, image scanning), secure defaults, and runtime monitoring — with security "shifted left" to where issues are cheapest to fix.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand DevSecOps, the shift-left principle, the CIA triad, and how security maps onto every pipeline stage. Next, you'll build these automated security checks into a real CI/CD pipeline.
+
+<NextLesson
+  title="Securing the Pipeline"
+  href="/ultimate-devops-learning-hub/devsecops/secure-pipeline"
+/>

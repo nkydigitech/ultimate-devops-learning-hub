@@ -1,0 +1,192 @@
+---
+title: "Securing the Pipeline"
+description: "Add automated security scanning to CI/CD: SAST, DAST, and software composition analysis (SCA) for dependency vulnerabilities."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Securing the Pipeline"
+  description="Automated scanning that catches vulnerabilities before they ship."
+  timeToRead="11 min"
+  icon="🔒"
+  section="DevSecOps"
+  sectionUrl="/devsecops/introduction"
+/>
+
+The heart of DevSecOps is automated scanning in your CI/CD pipeline. Three complementary techniques — **SCA**, **SAST**, and **DAST** — catch different classes of problems. Together they form a security net that runs on every change.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand SCA, SAST, and DAST and what each catches
+- Add security scans to a CI pipeline
+- Decide when to fail a build on findings
+- Understand the value of an SBOM
+
+---
+
+# Three Kinds of Scanning
+
+| Type | Full name | What it checks | Analogy |
+|------|-----------|----------------|---------|
+| **SCA** | Software Composition Analysis | Known vulnerabilities in your **dependencies** | Checking recalled parts in your supply chain |
+| **SAST** | Static Application Security Testing | Flaws in **your source code**, without running it | Proofreading the blueprint |
+| **DAST** | Dynamic Application Security Testing | Flaws in the **running application** | Testing the finished building's locks |
+
+<Tip title="They complement each other">
+No single scan finds everything. SCA covers third-party risk (most of your codebase!), SAST catches insecure code patterns, and DAST finds runtime issues only visible when the app is live. Use all three.
+</Tip>
+
+---
+
+# SCA — Your Dependencies Are Most of Your Risk
+
+Modern apps are mostly third-party code. A vulnerability in a library you imported is *your* vulnerability. SCA tools compare your dependencies against known-vulnerability databases.
+
+<CommandBlock command={`# In a CI job
+npm audit --audit-level=high      # Node
+pip-audit                         # Python
+trivy fs .                        # multi-language, filesystem scan`} language="bash" />
+
+<Terminal
+  command="trivy fs --severity HIGH,CRITICAL ."
+  output={`package-lock.json (npm)
+Total: 2 (HIGH: 1, CRITICAL: 1)
+
+┌───────────┬────────────────┬──────────┬───────────────┐
+│  Library  │ Vulnerability  │ Severity │ Fixed Version │
+├───────────┼────────────────┼──────────┼───────────────┤
+│ lodash    │ CVE-2021-23337 │ HIGH     │ 4.17.21       │
+│ minimist  │ CVE-2021-44906 │ CRITICAL │ 1.2.6         │
+└───────────┴────────────────┴──────────┴───────────────┘`}
+/>
+
+---
+
+# Adding Scans to CI
+
+Security scans are just more pipeline steps. In GitHub Actions:
+
+<CommandBlock command={`jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependency scan (SCA)
+        run: npm audit --audit-level=high
+
+      - name: Static analysis (SAST)
+        uses: github/codeql-action/analyze@v3
+
+      - name: Filesystem & secret scan
+        run: trivy fs --exit-code 1 --severity HIGH,CRITICAL .`} language="yaml" />
+
+The `--exit-code 1` makes Trivy fail the build when it finds high/critical issues — turning the scan into an enforced gate.
+
+---
+
+# When to Fail the Build
+
+Failing on *every* finding causes alert fatigue; failing on *nothing* is pointless. A common policy:
+
+| Severity | Action |
+|----------|--------|
+| **Critical / High** | Fail the build — must be fixed or explicitly waived |
+| **Medium** | Warn; track and fix in due course |
+| **Low / Info** | Report only |
+
+<Warning title="Don't drown in noise">
+If the pipeline screams about every low-severity issue, people start ignoring it — including the real ones. Tune severity thresholds and manage false positives so failures stay meaningful.
+</Warning>
+
+---
+
+# The SBOM
+
+An **SBOM** (Software Bill of Materials) is a complete inventory of every component in your software. Generating one lets you answer, instantly: *"Are we affected by the new vulnerability in library X?"*
+
+<CommandBlock command={`trivy image --format cyclonedx --output sbom.json myapp:1.0`} />
+
+<Tip title="Why SBOMs matter now">
+When a major vulnerability drops, teams with an SBOM know within minutes whether they're exposed. Teams without one spend days searching. SBOMs are increasingly a compliance and supply-chain-security requirement.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Add a Security Stage">
+  <div slot="tasks">
+    1. Add a CI job that runs an SCA scan (`npm audit` or `trivy fs`)
+    2. Configure it to fail on HIGH/CRITICAL findings
+    3. Explain which scan (SCA/SAST/DAST) would catch a vulnerable dependency vs a SQL injection in your own code
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`- name: Security scan
+  run: trivy fs --exit-code 1 --severity HIGH,CRITICAL .`} language="yaml" />
+    A vulnerable dependency → **SCA** finds it. SQL injection in your own code → **SAST** (static) or **DAST** (by attacking the running app) finds it.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which scan type finds known vulnerabilities in the third-party libraries your app depends on?"
+  options={["SAST", "DAST", "SCA", "SBOM"]}
+  answer={2}
+  explanation="SCA (Software Composition Analysis) checks your dependencies against known-vulnerability databases. SAST analyses your own source; DAST tests the running app."
+/>
+
+<Quiz
+  question="What is a sensible policy for failing a build on security findings?"
+  options={[
+    "Fail on every single finding, including informational ones",
+    "Never fail — just log everything",
+    "Fail on critical/high, warn on medium, report low",
+    "Fail randomly"
+  ]}
+  answer={2}
+  explanation="Failing on critical/high keeps gates meaningful, while warning on medium and reporting low avoids alert fatigue that makes people ignore the pipeline."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Explain SAST, DAST, and SCA and how you'd combine them in a pipeline.">
+  Each targets a different layer:
+
+  - **SCA** scans dependencies for known CVEs — critical because third-party code is the majority of most applications.
+  - **SAST** analyses your source code statically for insecure patterns (e.g. injection, hard-coded secrets) without running it.
+  - **DAST** attacks the running application to find runtime vulnerabilities that only appear in a live system.
+
+  In a pipeline I'd run **SCA and SAST early** (on every commit/PR — they're fast and shift left), and **DAST against a deployed staging environment** (it needs the app running). I'd fail the build on high/critical findings, tune thresholds to avoid noise, and generate an **SBOM** so we can respond instantly to newly disclosed vulnerabilities.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now add SCA, SAST, and DAST scanning to a pipeline, set sensible build-failure policies, and generate an SBOM. Next, we tackle one of the most common and dangerous security mistakes: how secrets are handled.
+
+<NextLesson
+  title="Secrets Management"
+  href="/ultimate-devops-learning-hub/devsecops/secrets-management"
+/>
