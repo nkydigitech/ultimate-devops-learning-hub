@@ -34,4 +34,9 @@ export const collections = {
   jenkins: section("jenkins"),
   "agentic-ai": section("agentic-ai"),
   devsecops: section("devsecops"),
+  "prometheus-grafana": section("prometheus-grafana"),
+  argocd: section("argocd"),
+  zipkin: section("zipkin"),
+  mcp: section("mcp"),
+  "production-projects": section("production-projects"),
 };

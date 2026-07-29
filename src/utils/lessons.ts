@@ -17,6 +17,11 @@ type LessonEntry = CollectionEntry<
   | "jenkins"
   | "agentic-ai"
   | "devsecops"
+  | "prometheus-grafana"
+  | "argocd"
+  | "zipkin"
+  | "mcp"
+  | "production-projects"
 >;
 
 export interface LessonNavLink {
