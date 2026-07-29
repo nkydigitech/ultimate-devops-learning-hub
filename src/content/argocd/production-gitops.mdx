@@ -1,0 +1,176 @@
+---
+title: "Production GitOps: App of Apps & Best Practices"
+description: "Scale Argo CD across many apps and environments with the App of Apps pattern, repo structure, and production best practices."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Production GitOps: App of Apps & Best Practices"
+  description="From one app to dozens across environments — cleanly and safely."
+  timeToRead="10 min"
+  icon="🏗️"
+  section="Argo CD"
+  sectionUrl="/argocd/introduction"
+/>
+
+One Application is easy. Real organizations run *dozens* across dev, staging, and prod. This lesson covers the **App of Apps** pattern, how to structure your Git repos, and the practices that keep GitOps sane at scale.
+
+---
+
+# 🎯 Learning Objectives
+
+- Understand the App of Apps pattern
+- Structure repositories for multiple environments
+- Separate config from code with overlays
+- Apply production GitOps best practices
+
+---
+
+# The App of Apps Pattern
+
+Instead of creating each Application by hand, you create **one parent Application** that itself points at a folder of *child* Application manifests. Argo CD then manages the children automatically.
+
+<CommandBlock command={`root-app (Application)
+  └─ points at git path "apps/"
+       ├─ app-frontend.yaml   (Application)
+       ├─ app-backend.yaml    (Application)
+       ├─ app-monitoring.yaml (Application)
+       └─ app-argocd.yaml     (Application)  ← even Argo CD config itself`} language="text" />
+
+Now onboarding a new service is a single commit — add its Application YAML to `apps/` and the root app syncs it into existence. This is how teams manage fleets of apps from one Git repo.
+
+---
+
+# Structuring Your Repos
+
+A common, clean layout separates *what the app is* from *how each environment configures it*, using **Kustomize** overlays:
+
+<CommandBlock command={`my-app/
+├── base/                 # shared manifests
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── kustomization.yaml
+└── overlays/
+    ├── dev/
+    │   └── kustomization.yaml   # e.g. 1 replica, debug on
+    ├── staging/
+    │   └── kustomization.yaml
+    └── prod/
+        └── kustomization.yaml   # e.g. 5 replicas, resource limits`} language="text" />
+
+Each environment gets its own Argo CD Application pointing at the matching overlay path. The base stays DRY; overlays hold only the differences.
+
+<Tip title="Config repo vs. app repo">
+A widely used practice is to keep application *source code* in one repo and the *deployment manifests* in a separate "config" repo. CI builds the image and bumps the image tag in the config repo; Argo CD sees the commit and deploys. This cleanly separates "build" from "deploy".
+</Tip>
+
+---
+
+# Production Best Practices
+
+- **Everything in Git** — no manual `kubectl apply` in production. If it's not in Git, it doesn't exist.
+- **Enable `selfHeal` and `prune`** in production so drift can't accumulate.
+- **Protect branches** — require pull-request review for the config repo; that review *is* your deployment approval.
+- **Promote by PR** — moving from staging to prod is a pull request bumping a version, giving you a full audit trail.
+- **Use Projects (AppProjects)** to restrict which repos, clusters, and namespaces a set of apps may touch — essential for multi-team clusters.
+- **Sync notifications** — wire Argo CD notifications to Slack so the team sees deploys and failures.
+
+<Warning title="Secrets don't belong in plain Git">
+Never commit raw secrets. Use Sealed Secrets, External Secrets Operator, or a vault integration so the Git repo holds only encrypted or referenced secrets, not plaintext credentials.
+</Warning>
+
+---
+
+# Rollback the GitOps Way
+
+Because Git is the source of truth, rollback is just Git:
+
+<CommandBlock command={`# revert the bad change — Argo CD re-syncs to the previous state
+git revert <bad-commit>
+git push
+
+# or roll an app back to a previous revision directly
+argocd app rollback my-app <history-id>`} />
+
+No special tooling, no snowflake procedure — the same workflow you already use for code.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Plan a Multi-Environment Setup">
+  <div slot="tasks">
+    You have one service that must run in `dev`, `staging`, and `prod` with different replica counts. Describe: (1) how you'd structure the manifests, (2) how many Argo CD Applications you'd create, and (3) how a change would promote from staging to prod.
+  </div>
+
+  <div slot="solution">
+    1. **Kustomize**: a shared `base/` plus `overlays/dev`, `overlays/staging`, `overlays/prod`, each overlay setting its own replica count.
+    2. **Three Applications** (one per environment), each pointing at its overlay path — ideally created via an App of Apps root.
+    3. **Promotion by PR**: a pull request updates the prod overlay (e.g. bumps the image tag) in the config repo; once merged, Argo CD auto-syncs prod. The PR is the audit trail and approval gate.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the App of Apps pattern?"
+  options={[
+    "Running multiple copies of the same app",
+    "A parent Application that manages a folder of child Application manifests",
+    "A way to merge two clusters",
+    "A Kubernetes networking mode"
+  ]}
+  answer={1}
+  explanation="App of Apps uses a single root Application pointing at a directory of child Applications, so Argo CD can manage many apps from one declarative entry point."
+/>
+
+<Quiz
+  question="In a GitOps workflow, how do you typically promote a change from staging to production?"
+  options={[
+    "SSH into the prod server and copy files",
+    "Open and merge a pull request that updates the prod configuration in Git",
+    "Manually run kubectl apply against prod",
+    "Delete and recreate the cluster"
+  ]}
+  answer={1}
+  explanation="Promotion is a Git pull request (e.g. bumping the image tag in the prod overlay). Merging it triggers Argo CD to sync prod, with the PR serving as approval and audit trail."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How would you manage 30 microservices across three environments with Argo CD?">
+  A scalable answer combines a few patterns:
+
+  - **App of Apps** (or ApplicationSets) so all services are declared in one place and onboarding is a single commit.
+  - **Kustomize/Helm overlays** with a shared base and per-environment overlays for the differences.
+  - **A separate config repo** with branch protection, so every deploy is a reviewed PR — that review is the approval.
+  - **AppProjects** to scope which repos/clusters/namespaces each team can deploy to.
+  - **selfHeal + prune** in prod, secrets handled via a sealed-secrets or external-secrets mechanism, and Slack notifications for visibility.
+
+  The result: dozens of services deploy safely, auditable through Git, with drift automatically corrected.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed the Argo CD track: GitOps principles, installation, sync and self-healing, and scaling with App of Apps and solid production practices. You can now deploy and manage whole fleets of apps declaratively from Git. Next, we shift from deployment to *debugging* distributed systems with tracing in **Zipkin**.
+
+<NextLesson
+  title="Introduction to Distributed Tracing with Zipkin"
+  href="/ultimate-devops-learning-hub/zipkin/introduction"
+/>

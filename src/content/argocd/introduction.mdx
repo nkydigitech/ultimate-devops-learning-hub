@@ -1,0 +1,171 @@
+---
+title: "Introduction to GitOps & Argo CD"
+description: "Understand what GitOps is, why it changes how we deploy, and how Argo CD keeps your cluster in sync with Git."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to GitOps & Argo CD"
+  description="Your Git repository becomes the single source of truth for what runs in production."
+  timeToRead="9 min"
+  icon="🚢"
+  section="Argo CD"
+  sectionUrl="/argocd/introduction"
+/>
+
+You've learned to build images, write Kubernetes manifests, and run CI/CD pipelines. But *how* should changes actually reach the cluster? **GitOps** answers that with a simple, powerful idea: **Git is the source of truth, and a controller continuously makes the cluster match it.** **Argo CD** is the most popular tool for doing GitOps on Kubernetes.
+
+---
+
+# 🎯 Learning Objectives
+
+- Understand what GitOps is and its core principles
+- See how "push" deployments differ from GitOps "pull"
+- Understand what Argo CD does
+- Know the key Argo CD concepts: Application, sync, and drift
+
+---
+
+# What is GitOps?
+
+GitOps means managing your infrastructure and deployments **declaratively in Git**, and using an automated agent to reconcile reality with what's committed.
+
+The principles:
+
+- **Declarative** — the entire desired state is described in files (Kubernetes YAML, Helm, Kustomize).
+- **Versioned & immutable** — that state lives in Git, so you get history, review, and rollback for free.
+- **Pulled automatically** — an agent in the cluster pulls the desired state and applies it.
+- **Continuously reconciled** — the agent constantly checks that the live cluster matches Git, and corrects drift.
+
+<Tip title="The one-line definition">
+GitOps = "the cluster should always look exactly like the Git repo says it should." If they differ, that's a bug to be corrected — automatically.
+</Tip>
+
+---
+
+# Push vs. Pull Deployments
+
+| | **Traditional Push** | **GitOps Pull** |
+|---|----------------------|-----------------|
+| Who applies changes | CI pipeline runs `kubectl apply` | An agent inside the cluster |
+| Credentials | CI needs cluster admin creds | Cluster creds never leave the cluster |
+| Source of truth | Whatever CI last ran | Git, always |
+| Drift detection | None | Continuous |
+| Rollback | Re-run an old pipeline | `git revert` |
+
+<CommandBlock command={`Push:   CI ──kubectl apply──▶ Cluster        (CI holds cluster keys)
+
+Pull:   Git ◀──watches── Argo CD (in cluster) ──applies──▶ Cluster`} language="text" />
+
+The pull model is more secure (cluster credentials stay inside the cluster) and self-correcting.
+
+---
+
+# What is Argo CD?
+
+**Argo CD** is a GitOps controller that runs *inside* your Kubernetes cluster. It watches one or more Git repositories containing your manifests and continuously makes the cluster match them.
+
+It gives you:
+
+- A **web UI** and CLI showing every app's sync status and health
+- **Automatic drift detection** — it knows the moment live state diverges from Git
+- **Automated or manual sync** — apply changes automatically or with a click
+- **Easy rollback** — point back at a previous Git commit
+
+---
+
+# Key Concepts
+
+| Concept | Meaning |
+|---------|---------|
+| **Application** | An Argo CD object linking a Git source to a cluster destination |
+| **Sync** | Applying the Git state to the cluster |
+| **Sync status** | `Synced` (matches Git) or `OutOfSync` (drifted) |
+| **Health status** | Whether the resources are actually healthy/running |
+| **Drift** | When live cluster state differs from Git |
+
+The mental model: you define an **Application**, Argo CD compares Git to the cluster, reports `Synced`/`OutOfSync`, and (optionally) syncs automatically.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Push or Pull?">
+  <div slot="tasks">
+    For each scenario, decide whether it describes a traditional push deployment or GitOps pull:
+    1. Someone runs `kubectl edit deployment` directly on the cluster.
+    2. A controller notices the cluster no longer matches Git and reverts the change.
+    3. A CI job with cluster admin credentials applies manifests at the end of a build.
+  </div>
+
+  <div slot="solution">
+    1. **Neither/anti-pattern** — a manual edit creates *drift*; under GitOps, Argo CD would flag it `OutOfSync` and (if auto-sync + self-heal is on) revert it.
+    2. **GitOps pull** — continuous reconciliation correcting drift.
+    3. **Traditional push** — CI holds credentials and pushes changes to the cluster.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="In GitOps, what is the single source of truth for what runs in the cluster?"
+  options={[
+    "The CI server's last run",
+    "A Git repository containing declarative manifests",
+    "Whatever an engineer typed into kubectl",
+    "The container registry"
+  ]}
+  answer={1}
+  explanation="GitOps makes Git the source of truth. A controller like Argo CD continuously reconciles the cluster to match what's committed."
+/>
+
+<Quiz
+  question="Why is the GitOps 'pull' model considered more secure than 'push'?"
+  options={[
+    "It uses encryption and push does not",
+    "Cluster credentials stay inside the cluster instead of being given to an external CI system",
+    "It doesn't use Git",
+    "It requires no authentication"
+  ]}
+  answer={1}
+  explanation="With pull, the in-cluster agent applies changes, so cluster admin credentials never have to be handed to an external CI pipeline."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What problems does GitOps solve compared to running kubectl apply from CI?">
+  GitOps addresses several pain points at once:
+
+  - **Auditability:** every change is a Git commit — who, what, when, and why, with review built in.
+  - **Rollback:** reverting is `git revert`, not archaeology through pipeline logs.
+  - **Drift correction:** manual hotfixes on the cluster are detected and can be auto-reverted, so the cluster can't silently diverge from what's documented.
+  - **Security:** cluster credentials never leave the cluster.
+  - **Consistency:** the same declarative flow works across many clusters and environments.
+
+  In short, it makes deployments transparent, reversible, and self-correcting.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand GitOps, how pull-based deployment differs from push, and the role of Argo CD along with its core concepts (Application, sync, drift). Next, you'll install Argo CD and deploy your first application from Git.
+
+<NextLesson
+  title="Installing Argo CD & Your First Application"
+  href="/ultimate-devops-learning-hub/argocd/install-and-apps"
+/>

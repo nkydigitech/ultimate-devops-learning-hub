@@ -1,0 +1,195 @@
+---
+title: "Sync Strategies, Health & Self-Healing"
+description: "Master automated sync, self-healing, pruning, sync waves, and how Argo CD assesses resource health."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Sync Strategies, Health & Self-Healing"
+  description="Automate deployments, correct drift, and control the order things roll out."
+  timeToRead="10 min"
+  icon="🔄"
+  section="Argo CD"
+  sectionUrl="/argocd/introduction"
+/>
+
+Manually clicking "Sync" is fine to learn, but the real power of Argo CD is **automation**: deploy on every commit, correct drift automatically, and control rollout order. This lesson covers sync policies, self-healing, pruning, and health checks.
+
+---
+
+# 🎯 Learning Objectives
+
+- Enable automated sync
+- Understand self-heal and prune
+- Use sync waves to order resources
+- Understand how Argo CD assesses health
+
+---
+
+# Manual vs. Automated Sync
+
+By default, sync is manual — Argo CD shows `OutOfSync` and waits for you. Turn on **automated sync** and it applies changes as soon as Git changes:
+
+<CommandBlock command={`spec:
+  syncPolicy:
+    automated:
+      prune: true        # delete resources removed from Git
+      selfHeal: true     # revert manual changes made in the cluster
+    syncOptions:
+      - CreateNamespace=true`} language="yaml" />
+
+Two flags do the heavy lifting:
+
+| Option | What it does |
+|--------|--------------|
+| **`prune`** | When you delete a manifest from Git, Argo CD deletes it from the cluster too |
+| **`selfHeal`** | When someone changes the live cluster by hand, Argo CD reverts it back to Git |
+
+<Warning title="Prune deletes things — enable it deliberately">
+With `prune: true`, removing a file from Git removes the resource from the cluster. That's exactly what you want for true GitOps, but be sure your Git repo really is the complete source of truth before enabling it.
+</Warning>
+
+---
+
+# Self-Healing in Action
+
+Self-heal is what makes the cluster tamper-resistant. Suppose someone scales a deployment by hand:
+
+<Terminal
+  command="kubectl scale deployment guestbook --replicas=10"
+  output={`deployment.apps/guestbook scaled`}
+/>
+
+Git still says 3 replicas. Argo CD detects the drift and, with `selfHeal: true`, reverts it:
+
+<Terminal
+  command="argocd app get guestbook"
+  output={`Sync Status:  Synced to main (a1b2c3d)
+Health:       Healthy
+# replicas back to 3 — manual change reverted automatically`}
+/>
+
+The lesson: **change the cluster by changing Git**, never by hand.
+
+---
+
+# Sync Waves — Controlling Order
+
+Some resources must exist before others (a database before the app that uses it, a namespace before its contents). **Sync waves** let you order the rollout using an annotation:
+
+<CommandBlock command={`metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"    # runs first (lower = earlier)`} language="yaml" />
+
+Resources in wave `0` sync and become healthy before wave `1` starts, and so on. Negative numbers run even earlier. This is how you sequence dependencies cleanly.
+
+<Tip title="Hooks for one-off steps">
+For things like database migrations, use resource **hooks** (`PreSync`, `Sync`, `PostSync`) — jobs that run at a specific point in the sync, e.g. run a migration `PreSync` before the new app version rolls out.
+</Tip>
+
+---
+
+# How Argo CD Assesses Health
+
+Sync status answers "does the cluster match Git?" — **health** answers "are the resources actually working?" Argo CD has built-in health checks per resource kind:
+
+| Resource | Healthy when… |
+|----------|---------------|
+| Deployment | Desired replicas are available and updated |
+| Service | Allocated correctly (LoadBalancer has an address) |
+| Ingress | Load balancer is provisioned |
+| Pod | Running / succeeded |
+
+An app can be `Synced` but `Degraded` — e.g. the manifests applied fine, but the pods are crash-looping. Watching both statuses together tells the full story.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Design a Safe Auto-Sync Policy">
+  <div slot="tasks">
+    You want an app that (a) deploys automatically on commit, (b) reverts manual cluster edits, and (c) removes resources deleted from Git — but you also need the database `Job` to run *before* the app deployment. Sketch the syncPolicy and the ordering annotation.
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`# syncPolicy on the Application
+spec:
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+# on the migration Job manifest — run before the app
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+
+# on the app Deployment — default wave 0 runs after
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"`} language="yaml" />
+    Automated + prune + selfHeal gives full GitOps behaviour; the migration in wave \`-1\` completes before the app in wave \`0\`.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What does the selfHeal option do?"
+  options={[
+    "Restarts crashed pods",
+    "Automatically reverts manual changes made directly to the cluster so it matches Git",
+    "Deletes the whole application",
+    "Upgrades Argo CD itself"
+  ]}
+  answer={1}
+  explanation="selfHeal makes Argo CD revert any live-cluster drift back to the state declared in Git, keeping Git authoritative."
+/>
+
+<Quiz
+  question="An app shows Sync Status: Synced but Health: Degraded. What does that mean?"
+  options={[
+    "The manifests failed to apply",
+    "The cluster matches Git, but the running resources aren't healthy (e.g. pods crash-looping)",
+    "Git is unreachable",
+    "The app was pruned"
+  ]}
+  answer={1}
+  explanation="Synced means the cluster matches Git; Degraded health means the applied resources aren't actually working — both statuses matter."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What's the difference between sync status and health status in Argo CD?">
+  They answer two different questions:
+
+  - **Sync status** — *does the live cluster match what's in Git?* Values are `Synced` or `OutOfSync`. It's about configuration correctness.
+  - **Health status** — *are the deployed resources actually functioning?* Values like `Healthy`, `Progressing`, `Degraded`. It's about runtime behaviour.
+
+  You can be `Synced` but `Degraded` (correct config, crashing pods) or `OutOfSync` but `Healthy` (running fine, but Git has a newer change not yet applied). Good operators watch both — sync tells you if GitOps is up to date, health tells you if the app works.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now know how to automate sync, self-heal drift, prune deleted resources, order rollouts with sync waves, and read health status. Next, we scale this up to managing many applications the GitOps way with the App of Apps pattern and production best practices.
+
+<NextLesson
+  title="Production GitOps: App of Apps & Best Practices"
+  href="/ultimate-devops-learning-hub/argocd/production-gitops"
+/>

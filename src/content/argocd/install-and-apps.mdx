@@ -1,0 +1,215 @@
+---
+title: "Installing Argo CD & Your First Application"
+description: "Install Argo CD into a cluster, log in, and deploy your first application declaratively from a Git repository."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Installing Argo CD & Your First Application"
+  description="From zero to a live app deployed straight from Git."
+  timeToRead="10 min"
+  icon="⚙️"
+  section="Argo CD"
+  sectionUrl="/argocd/introduction"
+/>
+
+Time to get hands-on. In this lesson you'll install Argo CD into a Kubernetes cluster, access its dashboard, and create your first **Application** that deploys manifests directly from a Git repo.
+
+---
+
+# 🎯 Learning Objectives
+
+- Install Argo CD into a cluster
+- Access the Argo CD UI and CLI
+- Create an Application (via YAML and CLI)
+- Trigger your first sync
+
+---
+
+# Step 1 — Install Argo CD
+
+Argo CD installs as a set of pods in its own namespace:
+
+<CommandBlock command={`kubectl create namespace argocd
+kubectl apply -n argocd -f \\
+  https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml`} />
+
+<Terminal
+  command="kubectl get pods -n argocd"
+  output={`NAME                                  READY   STATUS    RESTARTS   AGE
+argocd-server-6b7d9f7c8-xk2lm         1/1     Running   0          60s
+argocd-repo-server-77c9c4b8d-9wq4t    1/1     Running   0          60s
+argocd-application-controller-0       1/1     Running   0          60s
+argocd-redis-5b6f8d799-2pnzt          1/1     Running   0          60s`}
+/>
+
+The **application-controller** is the reconciliation engine; the **repo-server** fetches and renders manifests from Git; the **server** hosts the API and UI.
+
+---
+
+# Step 2 — Log In
+
+Get the auto-generated admin password and log in with the CLI:
+
+<CommandBlock command={`# initial admin password
+kubectl -n argocd get secret argocd-initial-admin-secret \\
+  -o jsonpath="{.data.password}" | base64 -d
+
+# port-forward the UI to your machine
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+# log in with the CLI
+argocd login localhost:8080`} />
+
+<Warning title="Change the default password">
+The initial admin password is stored in a secret for bootstrap only. Change it immediately (`argocd account update-password`) and, in real setups, wire Argo CD to your SSO instead of using the local admin account.
+</Warning>
+
+---
+
+# Step 3 — Define an Application
+
+An **Application** is just another Kubernetes resource. It says: *"take the manifests in this Git path and deploy them to this cluster/namespace."*
+
+<CommandBlock command={`apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/guestbook.git
+    targetRevision: main
+    path: k8s                 # folder in the repo holding the manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: guestbook
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true`} language="yaml" />
+
+Apply it like any manifest:
+
+<CommandBlock command={`kubectl apply -f guestbook-app.yaml`} />
+
+---
+
+# Step 4 — Sync It
+
+Right after creation the app is `OutOfSync` — defined in Git but not yet applied. Sync it to deploy:
+
+<CommandBlock command={`# via CLI
+argocd app sync guestbook
+
+# check status
+argocd app get guestbook`} />
+
+<Terminal
+  command="argocd app get guestbook"
+  output={`Name:               guestbook
+Project:            default
+Sync Status:        Synced to main (a1b2c3d)
+Health Status:      Healthy
+
+GROUP  KIND        NAMESPACE  NAME        STATUS  HEALTH
+       Service     guestbook  guestbook   Synced  Healthy
+apps   Deployment  guestbook  guestbook   Synced  Healthy`}
+/>
+
+`Synced` + `Healthy` means the cluster now matches Git and the workloads are running. You just did your first GitOps deploy.
+
+<Tip title="You can also create apps from the UI">
+The web UI has a "New App" form that produces the same Application resource. Under the hood it's identical YAML — prefer committing that YAML to Git so even your apps are managed via GitOps.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Author an Application Manifest">
+  <div slot="tasks">
+    Write an Argo CD `Application` that deploys manifests from the `deploy/` folder of `https://github.com/acme/api.git` (branch `main`) into a namespace called `api`, creating the namespace if needed.
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/acme/api.git
+    targetRevision: main
+    path: deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: api
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true`} language="yaml" />
+    The \`path\` points at the folder of manifests; \`CreateNamespace=true\` lets Argo CD create the target namespace on first sync.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What does an Argo CD Application resource define?"
+  options={[
+    "A container image build",
+    "A link between a Git source (repo + path + revision) and a cluster destination",
+    "A Prometheus alert rule",
+    "A Dockerfile"
+  ]}
+  answer={1}
+  explanation="An Application ties a Git source (repoURL, path, targetRevision) to a destination cluster and namespace, so Argo CD knows what to deploy where."
+/>
+
+<Quiz
+  question="Immediately after you create an Application (before syncing), what is its sync status?"
+  options={["Synced", "OutOfSync", "Healthy", "Deleted"]}
+  answer={1}
+  explanation="It's OutOfSync — the desired state exists in Git but hasn't been applied to the cluster yet. Syncing applies it and moves it to Synced."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Walk through what happens when you create an Argo CD Application and sync it.">
+  A clear end-to-end story:
+
+  1. You commit manifests to Git and create an **Application** resource pointing at that repo/path.
+  2. The **repo-server** clones the repo and renders the manifests (plain YAML, Helm, or Kustomize).
+  3. The **application-controller** compares the rendered desired state against the live cluster — initially `OutOfSync`.
+  4. On **sync** (manual or automated), Argo CD applies the manifests to the destination namespace.
+  5. It reports **Sync status** (matches Git?) and **Health status** (resources healthy?), and keeps watching for drift.
+
+  From then on, changing the app is just committing to Git — Argo CD reconciles the rest.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You installed Argo CD, logged in, defined an Application, and performed your first sync. Next, we go deeper into sync strategies, health assessment, and Argo CD's self-healing.
+
+<NextLesson
+  title="Sync Strategies, Health & Self-Healing"
+  href="/ultimate-devops-learning-hub/argocd/sync-and-health"
+/>
