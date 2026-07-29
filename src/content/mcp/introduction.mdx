@@ -1,0 +1,169 @@
+---
+title: "Introduction to the Model Context Protocol (MCP)"
+description: "Understand what MCP is, the problem it solves, and why it is becoming the standard way to connect AI models to tools and data."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to the Model Context Protocol (MCP)"
+  description="A universal connector between AI models and the tools, data, and systems they need."
+  timeToRead="9 min"
+  icon="🔌"
+  section="MCP"
+  sectionUrl="/mcp/introduction"
+/>
+
+AI models are powerful but isolated — by default they can't read your files, query your database, or call your APIs. Everyone solved this with custom, one-off integrations. The **Model Context Protocol (MCP)** fixes that with a single open standard for connecting AI to the outside world. Think of it as *"USB-C for AI."*
+
+---
+
+# 🎯 Learning Objectives
+
+- Understand the problem MCP solves
+- Know what MCP is and where it came from
+- Understand the three MCP primitives: tools, resources, prompts
+- See how MCP relates to DevOps automation
+
+---
+
+# The Problem: The M×N Integration Mess
+
+Before MCP, every AI application needed a *custom* integration for every tool. With **M** AI apps and **N** tools, you get **M × N** bespoke connectors — each built, tested, and maintained separately.
+
+<CommandBlock command={`Without a standard:            With MCP:
+
+App1 ─┬─ GitHub                App1 ─┐
+App2 ─┼─ Postgres              App2 ─┼─▶ MCP ─┬─ GitHub server
+App3 ─┴─ Slack                 App3 ─┘        ├─ Postgres server
+   (M × N custom glue)                        └─ Slack server
+                                          (M + N standard pieces)`} language="text" />
+
+MCP turns an **M × N** problem into an **M + N** one: build a tool as an MCP **server** once, and *any* MCP-capable app can use it. Build an app as an MCP **client** once, and it can use *any* MCP server.
+
+<Tip title="The USB-C analogy">
+Before USB-C, every device had its own charger. MCP is the USB-C port for AI: one standard interface, and everything that speaks it just works together.
+</Tip>
+
+---
+
+# What is MCP?
+
+**MCP** is an open protocol (introduced by Anthropic in late 2024, now broadly adopted) that standardizes how AI applications provide **context** to models and let them **take actions**. It defines a common language so any compliant client and server can talk.
+
+It's built on **JSON-RPC 2.0** messages and works over transports like standard input/output (for local servers) or HTTP with server-sent events (for remote ones).
+
+---
+
+# The Three Primitives
+
+An MCP server can expose three kinds of capability:
+
+| Primitive | What it is | Example |
+|-----------|-----------|---------|
+| **Tools** | Actions the model can *invoke* | "run a query", "create a GitHub issue", "restart a pod" |
+| **Resources** | Data the model can *read* | a file, a database row, a log, a config |
+| **Prompts** | Reusable prompt templates the user can trigger | "summarize this PR", "write a runbook" |
+
+The most important for automation is **tools** — they let the model *do things*, not just talk about them.
+
+<CommandBlock command={`Model wants to act
+   │
+   ▼
+MCP Client ──"call tool: create_issue"──▶ MCP Server ──▶ GitHub API
+           ◀─────── result ─────────────`} language="text" />
+
+---
+
+# Where MCP Fits in DevOps
+
+For DevOps, MCP is the bridge between an AI assistant and your real infrastructure. Instead of an assistant only *suggesting* commands, an MCP server can let it safely:
+
+- Query metrics or logs and summarize an incident
+- Open a pull request or a Jira ticket
+- Check the status of a deployment
+- Look up documentation or runbooks as resources
+
+The key word is **safely** — the server author controls exactly which tools exist and what they're allowed to do, so the model can only act within the boundaries you define.
+
+<Warning title="MCP servers define the blast radius">
+An MCP server is a security boundary. Expose only the tools you're comfortable an AI invoking, validate their inputs, and scope credentials tightly. "Give the AI a shell" is a tool you almost never want to expose.
+</Warning>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Tool, Resource, or Prompt?">
+  <div slot="tasks">
+    Classify each as an MCP tool, resource, or prompt:
+    1. Reading the contents of `deploy.yaml`
+    2. Restarting a Kubernetes deployment
+    3. A saved template: "Summarize this incident in 3 bullet points"
+  </div>
+
+  <div slot="solution">
+    1. **Resource** — read-only data the model can pull into context.
+    2. **Tool** — an action the model invokes (it *does* something with a side effect).
+    3. **Prompt** — a reusable template the user can trigger to guide the model.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What core problem does MCP solve?"
+  options={[
+    "It makes AI models train faster",
+    "It replaces the M×N mess of custom AI-to-tool integrations with one standard interface",
+    "It compresses model weights",
+    "It encrypts model outputs"
+  ]}
+  answer={1}
+  explanation="MCP standardizes how AI apps connect to tools and data, turning many bespoke integrations (M×N) into reusable standard pieces (M+N)."
+/>
+
+<Quiz
+  question="Which MCP primitive lets a model take an action with a side effect?"
+  options={["Resource", "Prompt", "Tool", "Token"]}
+  answer={2}
+  explanation="Tools are invokable actions (create an issue, run a query, restart a service). Resources are read-only data; prompts are reusable templates."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why is a standard like MCP valuable compared to building custom AI integrations?">
+  A standard pays off the same way any protocol does:
+
+  - **Reuse:** build a tool as an MCP server once and every MCP-capable client can use it — no per-app glue.
+  - **Interoperability:** swap the AI app or the model without rewriting integrations.
+  - **Maintainability:** one well-tested server beats N fragile custom connectors.
+  - **Security:** the server is a clear boundary where you define and audit exactly which actions are allowed.
+  - **Ecosystem:** a shared standard means a growing library of ready-made servers (GitHub, databases, filesystems) you can plug in.
+
+  It's the same reason USB-C, HTTP, or SQL won: a common interface removes combinatorial integration cost.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand the integration problem MCP solves, what MCP is, its three primitives (tools, resources, prompts), and its relevance to DevOps automation. Next, we look under the hood at MCP's architecture: hosts, clients, and servers.
+
+<NextLesson
+  title="MCP Architecture: Hosts, Clients & Servers"
+  href="/ultimate-devops-learning-hub/mcp/architecture"
+/>

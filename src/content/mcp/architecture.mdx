@@ -1,0 +1,200 @@
+---
+title: "MCP Architecture: Hosts, Clients & Servers"
+description: "Understand the host-client-server model of MCP, the transports it uses, and the message flow that connects a model to tools."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="MCP Architecture: Hosts, Clients & Servers"
+  description="The three roles and the message flow that let a model discover and call your tools."
+  timeToRead="10 min"
+  icon="🏛️"
+  section="MCP"
+  sectionUrl="/mcp/introduction"
+/>
+
+MCP has a clean architecture built from three roles — **host**, **client**, and **server** — talking over well-defined transports. Understanding this model makes building and debugging MCP integrations straightforward.
+
+---
+
+# 🎯 Learning Objectives
+
+- Understand the host, client, and server roles
+- Know the transports MCP uses (stdio and HTTP/SSE)
+- Follow the connection lifecycle and message flow
+- Understand capability discovery
+
+---
+
+# The Three Roles
+
+| Role | What it is | Example |
+|------|-----------|---------|
+| **Host** | The AI application the user interacts with; contains the model | An AI IDE, a chat assistant, a desktop app |
+| **Client** | A connector *inside the host*, one per server, that speaks MCP | The host's MCP client for the GitHub server |
+| **Server** | An external program exposing tools/resources/prompts | A GitHub server, a Postgres server |
+
+The relationship: one **host** runs one or more **clients**, and each client maintains a dedicated 1:1 connection to one **server**.
+
+<CommandBlock command={`┌───────────────── Host (AI app) ─────────────────┐
+│   Model                                          │
+│     │                                            │
+│   ┌─┴───────┐   ┌──────────┐   ┌──────────┐      │
+│   │ Client A │   │ Client B │   │ Client C │      │
+│   └────┬─────┘   └────┬─────┘   └────┬─────┘      │
+└────────┼──────────────┼──────────────┼───────────┘
+         ▼              ▼              ▼
+    GitHub server  Postgres server  Files server`} language="text" />
+
+<Tip title="Why one client per server?">
+Each client-server pair is an isolated, stateful session. This keeps servers independent — one crashing or misbehaving doesn't affect the others — and lets the host manage permissions per connection.
+</Tip>
+
+---
+
+# Transports
+
+MCP messages (JSON-RPC 2.0) travel over one of two main transports:
+
+| Transport | Use case | How |
+|-----------|----------|-----|
+| **stdio** | Local server on the same machine | Host launches the server as a subprocess; they exchange messages over stdin/stdout |
+| **Streamable HTTP** (with SSE) | Remote server over a network | HTTP requests plus server-sent events for streaming responses |
+
+Local developer tools usually use **stdio** (simple, no network); hosted/shared servers use **HTTP**.
+
+---
+
+# The Connection Lifecycle
+
+A client and server go through a defined handshake before any tools are called:
+
+<CommandBlock command={`1. initialize      client ▶ server   "here's my protocol version + capabilities"
+2. initialize      server ▶ client   "here's mine"
+3. initialized     client ▶ server   "ready"
+   ── now the session is live ──
+4. tools/list      client ▶ server   "what tools do you have?"
+5. tools/call      client ▶ server   "run create_issue with these args"
+6. (result)        server ▶ client   "here's the result"`} language="text" />
+
+Step 4 is **capability discovery** — the client asks the server what it offers, so the model can be told which tools are available without hardcoding anything.
+
+---
+
+# What a Tool Definition Looks Like
+
+When the client calls `tools/list`, the server returns each tool's name, description, and an input schema. The description and schema are what the model reads to decide *when* and *how* to call it:
+
+<CommandBlock command={`{
+  "name": "create_issue",
+  "description": "Create a new issue in a GitHub repository",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repo":  { "type": "string", "description": "owner/name" },
+      "title": { "type": "string" },
+      "body":  { "type": "string" }
+    },
+    "required": ["repo", "title"]
+  }
+}`} language="json" />
+
+<Warning title="Descriptions are the model's instructions">
+The model chooses tools based on their names and descriptions. Vague descriptions lead to misuse; clear, specific ones ("Create a GitHub issue; use only when the user asks to file a bug") make the model reliable. Treat tool descriptions as prompt engineering.
+</Warning>
+
+---
+
+# A Full Message Flow
+
+Putting it together, when a user asks the assistant to "file a bug about the login crash":
+
+<CommandBlock command={`User ▶ Host: "file a bug about the login crash"
+Host  ▶ Model: prompt + available tools (from tools/list)
+Model ▶ Host:  "call create_issue(repo=acme/app, title=Login crash)"
+Host  ▶ Client ▶ Server: tools/call create_issue {...}
+Server ▶ GitHub API: creates the issue
+Server ▶ Client ▶ Host: { url: "https://github.com/.../issues/42" }
+Host  ▶ Model ▶ User: "Done — filed issue #42."`} language="text" />
+
+The model decides *what* to do; the host mediates and enforces permissions; the server does the actual work.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Map the Roles">
+  <div slot="tasks">
+    In this setup, name the host, the client(s), and the server(s):
+    "An AI coding assistant connects to a local filesystem server (launched as a subprocess) and a remote Jira server over HTTP."
+  </div>
+
+  <div slot="solution">
+    - **Host:** the AI coding assistant (contains the model and the user interaction).
+    - **Clients:** two — one MCP client for the filesystem server, one for the Jira server (one client per server).
+    - **Servers:** the filesystem server (over **stdio**, since it's a local subprocess) and the Jira server (over **HTTP**, since it's remote).
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the relationship between MCP clients and servers?"
+  options={[
+    "One client connects to all servers at once",
+    "Each client maintains a dedicated 1:1 connection to a single server",
+    "Servers connect to each other",
+    "Clients and servers are the same thing"
+  ]}
+  answer={1}
+  explanation="A host runs one client per server, and each client holds an isolated 1:1 session with its server, keeping connections independent."
+/>
+
+<Quiz
+  question="What does the tools/list step accomplish?"
+  options={[
+    "It runs every tool once",
+    "Capability discovery — the client learns which tools the server offers so the model knows what's available",
+    "It authenticates the user",
+    "It closes the connection"
+  ]}
+  answer={1}
+  explanation="tools/list is capability discovery: the server advertises its tools (with descriptions and schemas), so tools don't need to be hardcoded into the host."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Explain the MCP architecture and why it separates host, client, and server.">
+  MCP defines three roles with clear responsibilities:
+
+  - **Host** — the AI application holding the model and the user relationship; it mediates everything and enforces permissions.
+  - **Client** — a connector inside the host, one per server, that speaks the MCP protocol over a transport.
+  - **Server** — an independent program exposing tools, resources, and prompts, doing the real work against an external system.
+
+  The separation matters because it keeps servers **isolated and reusable** (one per concern, independently developed and secured), lets the host **enforce permission boundaries** per connection, and makes the model's access to the world **declarative and discoverable** via `tools/list` rather than hardcoded. Transports (stdio for local, HTTP/SSE for remote) let the same model work whether the tool lives on your laptop or across the network.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand MCP's host-client-server model, its transports, the connection lifecycle, and capability discovery. With the architecture clear, let's build one: next you'll create your first MCP server exposing a tool.
+
+<NextLesson
+  title="Building Your First MCP Server"
+  href="/ultimate-devops-learning-hub/mcp/building-a-server"
+/>

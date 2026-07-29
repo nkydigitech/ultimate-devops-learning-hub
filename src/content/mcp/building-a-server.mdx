@@ -1,0 +1,221 @@
+---
+title: "Building Your First MCP Server"
+description: "Build a working MCP server that exposes a tool, using the official SDK, and connect it to an MCP host."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Building Your First MCP Server"
+  description="Expose a real tool the model can call — with input validation and a clear description."
+  timeToRead="11 min"
+  icon="🧰"
+  section="MCP"
+  sectionUrl="/mcp/introduction"
+/>
+
+Let's build. In this lesson you'll create a minimal MCP server that exposes one tool, run it over stdio, and connect it to a host. We'll use the official TypeScript SDK, but the concepts transfer to the Python SDK too.
+
+---
+
+# 🎯 Learning Objectives
+
+- Scaffold an MCP server with the official SDK
+- Define a tool with an input schema and handler
+- Run the server over stdio
+- Connect and test it from a host
+
+---
+
+# Step 1 — Set Up the Project
+
+Install the official MCP SDK and a schema validator:
+
+<CommandBlock command={`mkdir devops-mcp && cd devops-mcp
+npm init -y
+npm install @modelcontextprotocol/sdk zod`} language="bash" />
+
+`zod` lets us declare and validate the tool's input schema — critical, because the model will send arguments and we must not trust them blindly.
+
+---
+
+# Step 2 — Create the Server & a Tool
+
+Here's a complete, minimal server exposing one tool, `get_service_status`, that reports whether a named service is healthy:
+
+<CommandBlock command={`import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+
+// 1. Create the server
+const server = new McpServer({
+  name: "devops-tools",
+  version: "1.0.0",
+});
+
+// 2. Register a tool: name, description, input schema, handler
+server.tool(
+  "get_service_status",
+  "Check whether a named service is currently healthy",
+  { service: z.string().describe("The service name, e.g. 'payments'") },
+  async ({ service }) => {
+    // (in real life: query your monitoring / health endpoint)
+    const healthy = await checkHealth(service);
+    return {
+      content: [
+        {
+          type: "text",
+          text: healthy
+            ? service + " is healthy ✅"
+            : service + " is DOWN ❌",
+        },
+      ],
+    };
+  }
+);
+
+// 3. Connect over stdio
+const transport = new StdioServerTransport();
+await server.connect(transport);`} language="javascript" />
+
+Three things to notice:
+
+- The **description** tells the model when to use the tool.
+- The **zod schema** (`service: z.string()`) validates input automatically.
+- The handler **returns content** the model reads back.
+
+<Warning title="Validate and constrain every input">
+The model can call your tool with any arguments. The zod schema rejects malformed input, but you also enforce business rules in the handler — e.g. only allow known service names, never pass raw input into a shell command.
+</Warning>
+
+---
+
+# Step 3 — Run and Register It
+
+An stdio server isn't run directly by you — the **host launches it as a subprocess**. You tell the host how to start it via config. For a typical desktop host:
+
+<CommandBlock command={`{
+  "mcpServers": {
+    "devops-tools": {
+      "command": "node",
+      "args": ["/path/to/devops-mcp/server.js"]
+    }
+  }
+}`} language="json" />
+
+On start, the host runs that command, performs the `initialize` handshake, calls `tools/list`, and your `get_service_status` tool appears — ready for the model to call.
+
+---
+
+# Step 4 — Test It
+
+Before wiring it into a host, test with the **MCP Inspector**, an official dev tool that acts as a client:
+
+<CommandBlock command={`npx @modelcontextprotocol/inspector node server.js`} language="bash" />
+
+<Terminal
+  command="# In the Inspector UI: call get_service_status { service: 'payments' }"
+  output={`▶ tools/list
+  - get_service_status: Check whether a named service is currently healthy
+
+▶ tools/call get_service_status { "service": "payments" }
+  ← { "content": [{ "type": "text", "text": "payments is healthy ✅" }] }`}
+/>
+
+Seeing the tool listed and returning a result means your server is correct — now any MCP host can use it.
+
+<Tip title="Inspector first, host second">
+Always test a new server with the Inspector before connecting it to a real AI host. It isolates *your server's* behaviour from the model's decisions, so you debug one thing at a time.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Add a 'restart_service' Tool (Safely)">
+  <div slot="tasks">
+    Sketch a second tool `restart_service` that takes a service name from an allowed list only, and returns a confirmation. Focus on the schema and the safety check.
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`const ALLOWED = ["payments", "orders", "inventory"];
+
+server.tool(
+  "restart_service",
+  "Restart one of the known services. Use only when explicitly asked.",
+  { service: z.enum(["payments", "orders", "inventory"]) },
+  async ({ service }) => {
+    if (!ALLOWED.includes(service)) {
+      return { content: [{ type: "text", text: "Not allowed." }], isError: true };
+    }
+    await ops.restart(service);
+    return { content: [{ type: "text", text: "Restarted " + service }] };
+  }
+);`} language="javascript" />
+    Using \`z.enum([...])\` constrains input to a safe allow-list at the schema level, and the description tells the model to use it only on explicit request. This is how you keep an action tool safe.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why is an input schema (e.g. with zod) important when defining an MCP tool?"
+  options={[
+    "It makes the server start faster",
+    "It validates the arguments the model sends, since the model can call the tool with arbitrary input",
+    "It is required to connect over stdio",
+    "It encrypts the tool result"
+  ]}
+  answer={1}
+  explanation="The model supplies the arguments, so you must validate them. A schema rejects malformed input and (with enums/constraints) limits the tool to safe values."
+/>
+
+<Quiz
+  question="How is a stdio MCP server typically started?"
+  options={[
+    "You run it manually and it listens on a port",
+    "The host launches it as a subprocess based on a command in its config",
+    "It runs as a Kubernetes deployment",
+    "The model compiles it at runtime"
+  ]}
+  answer={1}
+  explanation="For stdio transport, the host starts the server as a subprocess (per the command/args in its config) and communicates over stdin/stdout."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What are the key things to get right when building an MCP tool?">
+  A good answer covers correctness, clarity, and safety:
+
+  - **Clear descriptions** — the model picks tools by their name and description, so write them precisely, including when *not* to use the tool.
+  - **Strict input schemas** — validate every argument; use enums and constraints to keep inputs within safe bounds.
+  - **Safety in the handler** — never pass model-supplied input straight into a shell or SQL string; enforce allow-lists and least privilege on credentials.
+  - **Useful, structured results** — return clear content the model can reason about, and set `isError` on failures.
+  - **Test in isolation** with the Inspector before connecting a real model, so you separate server bugs from model behaviour.
+
+  The mindset: an MCP tool is an API you're exposing to an autonomous caller, so treat input validation and least privilege as first-class.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You built a working MCP server, defined and validated a tool, ran it over stdio, and tested it with the Inspector. You now know how to give an AI safe, structured access to a system. Finally, let's see how MCP is used in real DevOps workflows.
+
+<NextLesson
+  title="Using MCP in DevOps Workflows"
+  href="/ultimate-devops-learning-hub/mcp/mcp-in-devops"
+/>
