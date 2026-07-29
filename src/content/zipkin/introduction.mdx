@@ -1,0 +1,172 @@
+---
+title: "Introduction to Distributed Tracing with Zipkin"
+description: "Understand what distributed tracing solves, how it differs from metrics and logs, and where Zipkin fits in."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Distributed Tracing with Zipkin"
+  description="When a request touches ten services, tracing tells you exactly where the time went."
+  timeToRead="9 min"
+  icon="🔍"
+  section="Zipkin"
+  sectionUrl="/zipkin/introduction"
+/>
+
+In a microservices system, a single user request might hop through an API gateway, three services, a cache, and a database. When it's slow, *which hop* is to blame? Metrics say "the system is slow"; logs are scattered across services. **Distributed tracing** stitches the whole journey together — and **Zipkin** is a classic, lightweight tool for doing it.
+
+---
+
+# 🎯 Learning Objectives
+
+- Understand the problem distributed tracing solves
+- See how tracing complements metrics and logs
+- Know what Zipkin is and its architecture
+- Understand the idea of a trace following a request across services
+
+---
+
+# The Microservices Debugging Problem
+
+In a monolith, a slow request is one process — a profiler finds the bottleneck. In microservices, one request fans out across many services and machines:
+
+<CommandBlock command={`Client ▶ Gateway ▶ Orders ▶ Payments ▶ Bank API
+                     │
+                     └─▶ Inventory ▶ Database
+
+"Checkout is slow." ...but which of these hops caused it?`} language="text" />
+
+Metrics tell you *that* latency is high. Logs from each service are hard to correlate. **Tracing** answers *where* the time went, by following one request end-to-end.
+
+---
+
+# Tracing vs. Metrics vs. Logs
+
+| Pillar | Question it answers | Granularity |
+|--------|---------------------|-------------|
+| **Metrics** | How much / how fast, overall? | Aggregated numbers |
+| **Logs** | What happened in detail, here? | Per-event, per-service |
+| **Traces** | Where did *this request's* time go across services? | Per-request, cross-service |
+
+They complement each other: metrics alert you, traces localize the problem, logs give the detail. This section focuses on **traces**.
+
+<Tip title="Traces are per-request stories">
+A metric is a number over time; a trace is the *story of a single request* as it travels through your system, timed at every step.
+</Tip>
+
+---
+
+# What is Zipkin?
+
+**Zipkin** is an open-source distributed tracing system (originally from Twitter). It **collects** timing data from your services and lets you **search and visualize** traces to find latency problems.
+
+Its architecture has four parts:
+
+<CommandBlock command={`Instrumented services ──spans──▶ Collector ──▶ Storage ──▶ UI / API
+   (send timing data)                          (in-memory,   (search &
+                                                Cassandra,    visualize
+                                                Elasticsearch) traces)`} language="text" />
+
+| Component | Role |
+|-----------|------|
+| **Reporter** (in your app) | Records timing and sends it to Zipkin |
+| **Collector** | Receives and validates incoming span data |
+| **Storage** | Stores traces (in-memory for demos; Elasticsearch/Cassandra for real use) |
+| **UI / API** | Search traces and view the waterfall timeline |
+
+---
+
+# A Trace, Visually
+
+Zipkin shows a trace as a **waterfall** — each service's work is a bar, positioned by when it happened and sized by how long it took:
+
+<CommandBlock command={`Trace: GET /checkout   (total 820ms)
+gateway  ├────────────────────────────────────┤ 820ms
+orders     ├──────────────────────────────┤     640ms
+payments        ├────────────────────┤           480ms  ◀ the bottleneck
+inventory  ├───┤                                  90ms`} language="text" />
+
+At a glance you can see **payments** dominated the request. That's the power of tracing: the slow hop is obvious.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Read the Waterfall">
+  <div slot="tasks">
+    Given this trace, which service should you investigate first, and why?
+
+    ```
+    gateway   ├──────────────────────────┤ 700ms
+    search      ├──┤                        80ms
+    ranking        ├──────────────────┤     520ms
+    ```
+  </div>
+
+  <div slot="solution">
+    **ranking** — it accounts for 520ms of the 700ms total and is the longest single span. The gateway's time is mostly *waiting on* ranking, so optimizing ranking (or making it async/parallel) is where the biggest win is.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What problem does distributed tracing primarily solve?"
+  options={[
+    "Storing application logs cheaply",
+    "Following a single request across multiple services to see where time is spent",
+    "Replacing metrics entirely",
+    "Building container images"
+  ]}
+  answer={1}
+  explanation="Tracing follows one request end-to-end across services, revealing exactly which hop contributed the latency — something aggregate metrics and scattered logs can't easily show."
+/>
+
+<Quiz
+  question="In Zipkin's architecture, what does the Collector do?"
+  options={[
+    "Renders dashboards",
+    "Receives and validates span data sent by instrumented services",
+    "Builds the application",
+    "Runs PromQL queries"
+  ]}
+  answer={1}
+  explanation="The Collector ingests span data reported by services, validates it, and passes it to storage, from where the UI can query and display traces."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="When would tracing help you where metrics and logs fall short?">
+  Tracing shines for cross-service latency and causality problems:
+
+  - **Metrics** tell you the checkout endpoint's p95 latency jumped — but not *why* or *where*.
+  - **Logs** exist per service, but correlating them across five services for one request is painful without a shared ID.
+  - **Traces** tie the whole request together with a trace ID and show a timed waterfall, so the slow service (or the surprising extra call, or the retry storm) is immediately visible.
+
+  So: metrics to detect and alert, traces to localize the culprit across services, logs to get the fine detail once you know where to look.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You understand why distributed tracing exists, how it complements metrics and logs, and Zipkin's architecture and waterfall view. Next, we unpack the building blocks of a trace: spans, trace IDs, and how context propagates between services.
+
+<NextLesson
+  title="Spans, Traces & Context Propagation"
+  href="/ultimate-devops-learning-hub/zipkin/spans-and-traces"
+/>

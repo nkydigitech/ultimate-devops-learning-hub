@@ -1,0 +1,193 @@
+---
+title: "Analysing Latency & Debugging with Zipkin"
+description: "Use the Zipkin UI to find slow spans, spot errors and retries, read dependency graphs, and debug real latency problems."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Analysing Latency & Debugging with Zipkin"
+  description="Turn traces into answers — find the slow hop, the hidden retry, the chatty dependency."
+  timeToRead="10 min"
+  icon="🔬"
+  section="Zipkin"
+  sectionUrl="/zipkin/introduction"
+/>
+
+Traces are flowing — now let's *use* them. The Zipkin UI is where you go from "checkout is slow" to "payments is making three retries to the bank API." This lesson covers reading traces, spotting common problems, and the dependency graph.
+
+---
+
+# 🎯 Learning Objectives
+
+- Search for traces in the Zipkin UI
+- Read a waterfall to find the critical path
+- Recognise common anti-patterns (N+1 calls, retries, serial calls)
+- Use the dependency diagram
+
+---
+
+# Searching for Traces
+
+The Zipkin UI lets you filter traces by service, span name, tags, duration, and time range. To hunt latency, sort by longest duration:
+
+<CommandBlock command={`Search filters:
+  serviceName = checkout
+  minDuration = 500ms          # only slow requests
+  tagQuery    = error=true     # or only failing ones
+  lookback    = 1h`} language="text" />
+
+This surfaces the exact slow or failing requests — not averages, but real individual journeys you can open and inspect.
+
+<Tip title="Start from a symptom">
+Don't browse traces at random. Start from a real complaint — "checkout p95 spiked at 2pm" — filter to that service, time, and a high `minDuration`, and open the worst offenders.
+</Tip>
+
+---
+
+# Reading the Waterfall: The Critical Path
+
+Open a trace and read the waterfall top-to-bottom. The **critical path** is the chain of spans that actually determines total duration.
+
+<CommandBlock command={`GET /checkout                        820ms  ◀ total
+├─ orders-service                    640ms
+│  ├─ SELECT orders                   40ms
+│  └─ payments-service               560ms  ◀ dominates
+│     └─ POST bank-api  (x3 retries) 520ms  ◀ root cause
+└─ inventory-service                  90ms  (parallel, not on critical path)`} language="text" />
+
+Reading this: inventory ran in parallel and is cheap; the real cost is **payments → bank-api**, which is **retrying three times**. The fix isn't "optimize checkout" — it's "why is the bank API failing and retrying?"
+
+---
+
+# Common Problems Traces Reveal
+
+| Pattern in the waterfall | Likely problem |
+|--------------------------|----------------|
+| Many tiny identical spans in a loop | **N+1 queries** — batch them |
+| Same call repeated 3× back-to-back | **Retries** on a failing dependency |
+| Long spans stacked sequentially | **Serial calls** that could run in parallel |
+| A big gap between spans | Time lost in queue/GC/lock, not in a call |
+| A span tagged `error=true` | A failure — open it for the exception detail |
+
+<Warning title="A gap is a clue too">
+Empty time *between* spans (where nothing is running) often means waiting — on a lock, a thread pool, a queue, or garbage collection. Don't just look at the bars; look at the gaps.
+</Warning>
+
+---
+
+# The Dependency Diagram
+
+Zipkin aggregates traces into a **service dependency graph** — who calls whom, and how often. It's invaluable for understanding an unfamiliar system:
+
+<CommandBlock command={`gateway ──▶ orders ──▶ payments ──▶ bank-api
+                │
+                └────▶ inventory ──▶ warehouse-db`} language="text" />
+
+Use it to spot surprises: a service calling one it shouldn't, an unexpectedly chatty edge, or a single dependency that everything funnels through (a availability risk).
+
+---
+
+# A Debugging Workflow
+
+Put it together into a repeatable loop:
+
+1. **Alert fires** (from your metrics) — latency or errors up on `checkout`.
+2. **Search Zipkin** for slow/failing `checkout` traces in that window.
+3. **Open the worst trace**, follow the critical path to the dominant span.
+4. **Inspect that span's tags** and any error, or spot the retry/N+1 pattern.
+5. **Check logs** for that exact `traceId` to get line-level detail.
+6. **Fix and verify** — after deploying, new traces should show the span shrink.
+
+<Tip title="Metrics + traces + logs together">
+This is observability in practice: metrics *detected* it, the trace *localized* it, and logs (found by traceId) gave the *detail*. Each pillar hands off to the next.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Diagnose from the Trace">
+  <div slot="tasks">
+    A user reports slow product pages. This trace shows the problem — what is it, and what's your fix?
+
+    ```
+    GET /product/42               900ms
+    ├─ product-service            880ms
+    │  ├─ SELECT product           20ms
+    │  ├─ SELECT review (id=1)     18ms
+    │  ├─ SELECT review (id=2)     19ms
+    │  ├─ SELECT review (id=3)     18ms
+    │  └─ ... 40 more SELECT review spans
+    ```
+  </div>
+
+  <div slot="solution">
+    This is a classic **N+1 query** problem: one query for the product, then a separate query per review (40+ of them), each cheap but adding up to most of the 880ms. **Fix:** replace the per-review queries with a single batched query (e.g. `SELECT * FROM review WHERE product_id = 42`) or a join. The waterfall's repeated identical spans are the tell-tale sign.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="In a trace waterfall, what is the 'critical path'?"
+  options={[
+    "The first span that runs",
+    "The chain of spans that actually determines the total request duration",
+    "Any span tagged as an error",
+    "The shortest span in the trace"
+  ]}
+  answer={1}
+  explanation="The critical path is the sequence of dependent spans whose combined time drives the total. Spans running in parallel off the critical path don't add to total duration."
+/>
+
+<Quiz
+  question="You see 40 nearly identical short DB spans in a loop within one trace. What does this usually indicate?"
+  options={[
+    "Healthy caching",
+    "An N+1 query pattern that should be batched into fewer queries",
+    "Correct use of retries",
+    "Context propagation failure"
+  ]}
+  answer={1}
+  explanation="Many repeated per-item queries are the N+1 anti-pattern. Batching them into a single query (or a join) usually collapses that time dramatically."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Walk me through using a trace to debug a latency spike.">
+  A structured answer that ties observability together:
+
+  1. **Detection** comes from metrics/alerts — e.g. checkout p95 latency spiked.
+  2. **Search** Zipkin for slow traces of that service in the spike window, sorted by duration.
+  3. **Open the worst trace** and follow the critical path to the span that dominates total time.
+  4. **Diagnose the pattern**: is it one slow downstream call, retries against a failing dependency, an N+1 loop, or serial calls that could be parallel?
+  5. **Drill down**: read the span's tags and error status; pull logs by the shared `traceId` for detail.
+  6. **Fix and confirm**: after the change, new traces should show that span shrink and p95 recover.
+
+  The key insight is that tracing turns "the system is slow" into "*this specific hop* is slow, for *this reason*."
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed the Zipkin track: what tracing solves, the span/trace data model and propagation, instrumenting with OpenTelemetry, and analyzing traces to debug real latency and error problems. You can now see *inside* a distributed request. Next, we explore **MCP** — the Model Context Protocol connecting AI to your tools.
+
+<NextLesson
+  title="Introduction to the Model Context Protocol (MCP)"
+  href="/ultimate-devops-learning-hub/mcp/introduction"
+/>

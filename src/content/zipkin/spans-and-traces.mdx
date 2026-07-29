@@ -1,0 +1,188 @@
+---
+title: "Spans, Traces & Context Propagation"
+description: "Learn the core data model of tracing — spans, trace and span IDs, parent-child relationships, and how context travels between services."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Spans, Traces & Context Propagation"
+  description="The trace ID that ties everything together, and how it rides along with every request."
+  timeToRead="10 min"
+  icon="🧵"
+  section="Zipkin"
+  sectionUrl="/zipkin/introduction"
+/>
+
+To use tracing well, you need its vocabulary. A **trace** is made of **spans**, connected by IDs, and the magic that keeps them connected across services is **context propagation**. Let's break it down.
+
+---
+
+# 🎯 Learning Objectives
+
+- Define span and trace
+- Understand trace IDs, span IDs, and parent-child links
+- Understand how trace context propagates between services
+- Read the headers that carry that context
+
+---
+
+# Spans and Traces
+
+A **span** is a single named, timed operation — one unit of work (an HTTP call, a DB query, a function). A **trace** is the whole tree of spans for one request.
+
+<CommandBlock command={`Trace (traceId = abc123)
+└─ span: GET /checkout           (root span)
+   ├─ span: call orders-service
+   │  └─ span: SELECT order       (child)
+   └─ span: call payments-service
+      └─ span: POST to bank API   (child)`} language="text" />
+
+Each span records:
+
+- A **name** (e.g. `GET /checkout`)
+- A **start time** and **duration**
+- **IDs** linking it into the trace
+- Optional **tags** (key/value metadata) and **annotations** (timed events)
+
+---
+
+# The IDs That Connect Everything
+
+Three IDs turn a pile of spans into a tree:
+
+| ID | Meaning |
+|----|---------|
+| **traceId** | Same for *every* span in one request — the glue |
+| **spanId** | Unique to this individual span |
+| **parentId** | The spanId of the span that caused this one |
+
+<CommandBlock command={`traceId=abc123  spanId=1  parentId=none   GET /checkout
+traceId=abc123  spanId=2  parentId=1      call orders
+traceId=abc123  spanId=3  parentId=2      SELECT order
+traceId=abc123  spanId=4  parentId=1      call payments`} language="text" />
+
+Because they share `traceId=abc123`, Zipkin knows these spans belong together; `parentId` tells it the nesting. That's how the waterfall is reconstructed.
+
+---
+
+# Context Propagation — The Key Idea
+
+Here's the crucial part: when service A calls service B, it must **pass the trace context along**, or B starts a brand-new trace and the story breaks. This passing-along is **context propagation**, and it happens via HTTP headers.
+
+Zipkin's classic **B3 headers** carry the context:
+
+<CommandBlock command={`GET /pay HTTP/1.1
+Host: payments
+X-B3-TraceId: abc123
+X-B3-SpanId: 4
+X-B3-ParentSpanId: 1
+X-B3-Sampled: 1`} language="text" />
+
+Service B reads these, continues the *same* trace (`abc123`), and creates its child spans under it. The modern standard, **W3C Trace Context**, does the same job with a single `traceparent` header:
+
+<CommandBlock command={`traceparent: 00-abc123...-00f067aa0ba902b7-01`} language="text" />
+
+<Warning title="Propagation is where tracing usually breaks">
+If a trace looks broken (each service shows its own separate trace), the cause is almost always lost context propagation — a client that didn't forward the headers, or an async boundary (queue, thread pool) that dropped them. Forwarding context is the thing to get right.
+</Warning>
+
+---
+
+# Sampling — You Don't Trace Everything
+
+Tracing every request in a high-traffic system is expensive. **Sampling** decides which requests to record. The `X-B3-Sampled: 1` header above means "record this one." Common strategies:
+
+- **Rate-based** — record 1% (or 10%) of requests.
+- **Head-based** — the decision is made at the start and propagated so a whole trace is consistently recorded or not.
+
+<Tip title="Keep the decision consistent">
+The sampling decision is made once at the edge and carried in the context, so either the *whole* trace is recorded or none of it is — you never get half a trace.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Reconstruct the Tree">
+  <div slot="tasks">
+    Given these spans, draw the parent-child tree and identify the root span:
+
+    ```
+    traceId=x9  spanId=A  parentId=none
+    traceId=x9  spanId=B  parentId=A
+    traceId=x9  spanId=C  parentId=A
+    traceId=x9  spanId=D  parentId=B
+    ```
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`A  (root — parentId=none)
+├─ B
+│  └─ D
+└─ C`} language="text" />
+    All share \`traceId=x9\` so they're one trace. **A** is the root (no parent). B and C are children of A; D is a child of B.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What links all the spans of a single request together?"
+  options={[
+    "They share the same spanId",
+    "They share the same traceId",
+    "They have the same name",
+    "They run on the same server"
+  ]}
+  answer={1}
+  explanation="Every span in one request carries the same traceId. spanId is unique per span, and parentId records the nesting."
+/>
+
+<Quiz
+  question="Why is context propagation essential for tracing to work across services?"
+  options={[
+    "It compresses the trace data",
+    "It passes the trace context (IDs) to downstream services so they continue the same trace instead of starting a new one",
+    "It encrypts the request",
+    "It load-balances requests"
+  ]}
+  answer={1}
+  explanation="Without propagating the trace context (via B3 or traceparent headers), each service would begin its own unrelated trace, and the end-to-end picture would be lost."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="A trace is showing up as several disconnected traces instead of one. What's wrong and how do you fix it?">
+  This is the classic **broken propagation** symptom. The trace context isn't being carried across a boundary, so downstream services start new traces. Common causes and fixes:
+
+  - **An HTTP client not forwarding headers** — ensure the instrumented/traced client is used, so B3 / `traceparent` headers are attached to outgoing calls.
+  - **Async boundaries** (message queues, thread pools, background jobs) that drop the context — explicitly extract the context before the hop and re-inject it on the other side.
+  - **Mixed propagation formats** — one service speaks B3, another only W3C; standardize on one (usually W3C Trace Context) across the fleet.
+
+  The fix is always to make sure the same `traceId` flows through every hop.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now know the tracing data model — spans, traces, the traceId/spanId/parentId relationship — and the critical role of context propagation and sampling. Next, we actually instrument a service and send real traces to Zipkin.
+
+<NextLesson
+  title="Instrumenting a Service & Sending Traces to Zipkin"
+  href="/ultimate-devops-learning-hub/zipkin/instrumenting"
+/>

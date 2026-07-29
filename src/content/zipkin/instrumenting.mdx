@@ -1,0 +1,213 @@
+---
+title: "Instrumenting a Service & Sending Traces to Zipkin"
+description: "Run Zipkin, instrument an application with OpenTelemetry, and send your first real traces."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Instrumenting a Service & Sending Traces to Zipkin"
+  description="From a running Zipkin to real spans flowing in from your app."
+  timeToRead="10 min"
+  icon="🛠️"
+  section="Zipkin"
+  sectionUrl="/zipkin/introduction"
+/>
+
+Theory is done — let's produce real traces. You'll start Zipkin locally, then **instrument** an application so it records spans and reports them. We'll use **OpenTelemetry**, today's vendor-neutral standard for instrumentation, exporting to Zipkin.
+
+---
+
+# 🎯 Learning Objectives
+
+- Run Zipkin locally with Docker
+- Understand automatic vs. manual instrumentation
+- Instrument an app with OpenTelemetry and export to Zipkin
+- Add a custom span with tags
+
+---
+
+# Step 1 — Run Zipkin
+
+The fastest way to get Zipkin is its official Docker image (uses in-memory storage — perfect for learning):
+
+<CommandBlock command={`docker run -d -p 9411:9411 openzipkin/zipkin`} />
+
+<Terminal
+  command="curl -s localhost:9411/health"
+  output={`{
+  "status": "UP",
+  "zipkin": { "status": "UP" }
+}`}
+/>
+
+The UI is now at `http://localhost:9411`. It's empty because nothing has sent traces yet — that's our next job.
+
+---
+
+# Automatic vs. Manual Instrumentation
+
+There are two ways to get spans out of an app:
+
+| Approach | What it means |
+|----------|---------------|
+| **Automatic** | An agent/library auto-instruments common frameworks (HTTP servers, clients, DB drivers) — little to no code change |
+| **Manual** | You create spans in your own code for business operations you care about |
+
+Real systems use both: automatic for the plumbing, manual for the important custom operations.
+
+---
+
+# Step 2 — Auto-Instrument with OpenTelemetry
+
+For a Node.js service, OpenTelemetry can auto-instrument with no app code changes and export to Zipkin. Point it at your Zipkin collector via environment variables:
+
+<CommandBlock command={`npm install @opentelemetry/api \\
+  @opentelemetry/sdk-node \\
+  @opentelemetry/auto-instrumentations-node \\
+  @opentelemetry/exporter-zipkin`} language="bash" />
+
+<CommandBlock command={`// tracing.js — loaded before your app
+const { NodeSDK } = require("@opentelemetry/sdk-node");
+const { ZipkinExporter } = require("@opentelemetry/exporter-zipkin");
+const { getNodeAutoInstrumentations } =
+  require("@opentelemetry/auto-instrumentations-node");
+
+const sdk = new NodeSDK({
+  serviceName: "orders-service",
+  traceExporter: new ZipkinExporter({
+    url: "http://localhost:9411/api/v2/spans",
+  }),
+  instrumentations: [getNodeAutoInstrumentations()],
+});
+
+sdk.start();`} language="javascript" />
+
+Run your app with this loaded first, and every incoming HTTP request and outgoing call automatically becomes a span in Zipkin:
+
+<CommandBlock command={`node -r ./tracing.js server.js`} language="bash" />
+
+---
+
+# Step 3 — Add a Custom Span
+
+For business logic you care about, create a manual span and tag it with useful metadata:
+
+<CommandBlock command={`const { trace } = require("@opentelemetry/api");
+const tracer = trace.getTracer("orders-service");
+
+async function chargeCustomer(orderId, amount) {
+  const span = tracer.startSpan("charge-customer");
+  span.setAttribute("order.id", orderId);
+  span.setAttribute("payment.amount", amount);
+  try {
+    await paymentGateway.charge(amount);
+  } catch (err) {
+    span.recordException(err);
+    span.setStatus({ code: 2 });   // ERROR
+    throw err;
+  } finally {
+    span.end();                    // always end the span
+  }
+}`} language="javascript" />
+
+Now Zipkin shows a `charge-customer` span with your `order.id` and `payment.amount` tags — searchable and visible in the waterfall.
+
+<Warning title="Always end your spans">
+A span that never calls `end()` never gets reported (and leaks memory). Wrap the work in try/finally and end the span in `finally` so it's recorded even on error.
+</Warning>
+
+<Tip title="Instrument once, export anywhere">
+Because we used OpenTelemetry, switching from Zipkin to Jaeger (or a hosted backend) later is just changing the exporter — your instrumentation code stays the same. That vendor-neutrality is why OpenTelemetry has become the standard.
+</Tip>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Trace a Slow Dependency">
+  <div slot="tasks">
+    You suspect an external `inventory-check` call is slow. Describe how you'd wrap it in a custom span (with a tag for the item ID) so its duration shows up in Zipkin.
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`async function checkInventory(itemId) {
+  const span = tracer.startSpan("inventory-check");
+  span.setAttribute("item.id", itemId);
+  try {
+    return await inventoryApi.get(itemId);
+  } catch (err) {
+    span.recordException(err);
+    span.setStatus({ code: 2 });
+    throw err;
+  } finally {
+    span.end();
+  }
+}`} language="javascript" />
+    The span records the call's duration; the \`item.id\` tag lets you find and filter these spans in the Zipkin UI. If it's the bottleneck, its bar will dominate the trace waterfall.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the advantage of automatic instrumentation?"
+  options={[
+    "It traces business logic you write yourself",
+    "It instruments common frameworks (HTTP, DB) with little or no code change",
+    "It replaces the need for a collector",
+    "It stores traces permanently"
+  ]}
+  answer={1}
+  explanation="Automatic instrumentation hooks into standard libraries/frameworks to produce spans with minimal code changes; manual instrumentation is for your own custom operations."
+/>
+
+<Quiz
+  question="Why use OpenTelemetry to export to Zipkin rather than a Zipkin-specific library?"
+  options={[
+    "It's the only thing Zipkin accepts",
+    "It's vendor-neutral — you can switch backends later by changing only the exporter",
+    "It disables sampling",
+    "It removes the need for context propagation"
+  ]}
+  answer={1}
+  explanation="OpenTelemetry is a vendor-neutral standard. Your instrumentation stays the same; swapping Zipkin for Jaeger or a hosted backend is just an exporter change."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How would you add tracing to an existing microservice with minimal risk?">
+  A pragmatic, low-risk rollout:
+
+  1. **Start with automatic instrumentation** via OpenTelemetry — it captures HTTP and DB spans without touching business logic.
+  2. **Export to Zipkin** (or your backend) and verify traces appear end-to-end, confirming context propagation works across services.
+  3. **Sample conservatively** at first (e.g. a small percentage) to limit overhead, then tune.
+  4. **Add manual spans** only for the few business operations you most care about, with meaningful tags.
+  5. **Roll out service by service**, checking that traces stay connected as each is instrumented.
+
+  This gives fast value (the plumbing traces itself) while keeping code changes and performance risk small.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You ran Zipkin, instrumented an app with OpenTelemetry, exported spans, and added a custom span with tags. Traces are now flowing. In the final lesson we use them: analyzing latency and debugging real problems in the Zipkin UI.
+
+<NextLesson
+  title="Analysing Latency & Debugging with Zipkin"
+  href="/ultimate-devops-learning-hub/zipkin/analyzing"
+/>
