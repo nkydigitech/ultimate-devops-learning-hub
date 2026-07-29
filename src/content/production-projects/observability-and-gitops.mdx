@@ -1,0 +1,216 @@
+---
+title: "Project 3: Add Monitoring, Tracing & GitOps"
+description: "Complete the portfolio system — add Prometheus/Grafana monitoring, Zipkin tracing, and Argo CD GitOps delivery to your Kubernetes app."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Project 3: Add Monitoring, Tracing & GitOps"
+  description="The operational layer that turns a running app into a production-grade system."
+  timeToRead="12 min"
+  icon="🎯"
+  section="Production Projects"
+  sectionUrl="/production-projects/introduction"
+/>
+
+Your app is containerised, provisioned with Terraform, and running on Kubernetes. It *works* — but can you *see* it, and how do you *deploy changes safely*? Project 3 adds the operational layer: **monitoring** (Prometheus + Grafana), **tracing** (Zipkin), and **GitOps delivery** (Argo CD). This is what makes it truly production-grade — and completes your portfolio.
+
+---
+
+# 🎯 Learning Objectives
+
+- Expose app metrics and monitor them with Prometheus + Grafana
+- Add distributed tracing with Zipkin
+- Deliver the app via Argo CD GitOps
+- Tie the full system together into one coherent project
+
+---
+
+# Step 1 — Monitoring
+
+First, expose a `/metrics` endpoint in the app (using a Prometheus client library), then tell Prometheus to scrape it. On Kubernetes this is usually annotation-based or via a `ServiceMonitor`:
+
+<CommandBlock command={`# add scrape annotations to the app's pods/service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+    prometheus.io/path: "/metrics"`} language="yaml" />
+
+Then build a **RED dashboard** in Grafana (Rate, Errors, Duration) — the same pattern from the monitoring track:
+
+<CommandBlock command={`# Request rate
+sum(rate(http_requests_total{app="myapp"}[5m]))
+
+# Error ratio
+sum(rate(http_requests_total{app="myapp",status=~"5.."}[5m]))
+/
+sum(rate(http_requests_total{app="myapp"}[5m]))
+
+# p95 latency
+histogram_quantile(0.95,
+  sum(rate(http_request_duration_seconds_bucket{app="myapp"}[5m])) by (le))`} language="text" />
+
+Add an alert (via Alertmanager) for a sustained high error rate, and you'll *know* about problems before users complain.
+
+---
+
+# Step 2 — Tracing
+
+Instrument the app with **OpenTelemetry** exporting to **Zipkin** (as in the tracing track), so requests across services produce a waterfall you can inspect:
+
+<CommandBlock command={`traceExporter: new ZipkinExporter({
+  url: "http://zipkin.observability:9411/api/v2/spans",
+})`} language="javascript" />
+
+Now when the RED dashboard shows a latency spike, you don't guess — you open Zipkin, find the slow trace, and see exactly which span (a slow DB query, a retrying downstream call) is responsible. Metrics detect; traces localize.
+
+<Tip title="Observability before you need it">
+Add monitoring and tracing *while things are calm*, not during an incident. The whole point is that when something breaks at 3am, the dashboards and traces are already there waiting for you.
+</Tip>
+
+---
+
+# Step 3 — GitOps Delivery with Argo CD
+
+Now replace any manual `kubectl apply` with **GitOps**. Commit all your Kubernetes manifests to a repo and let Argo CD keep the cluster in sync:
+
+<CommandBlock command={`apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/you/myapp-config.git
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: myapp
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }`} language="yaml" />
+
+The delivery loop is now fully automated and safe:
+
+<CommandBlock command={`CI builds image  →  bumps image tag (SHA) in myapp-config repo
+                         │
+                    Argo CD detects the commit
+                         │
+                    syncs cluster to match Git  →  new version live`} language="text" />
+
+Deploys become pull requests; rollbacks become `git revert`; drift is auto-corrected. Every one of the earlier tracks now clicks into place.
+
+<Warning title="Close the loop end-to-end">
+For your portfolio, make sure the whole chain works without manual steps: push code → CI builds & publishes a SHA-tagged image → the config repo is updated → Argo CD deploys it → the dashboard shows the new version healthy. That end-to-end demo is what impresses interviewers.
+</Warning>
+
+---
+
+# The Complete System
+
+Step back and look at what you've built — a genuine production-grade system that exercises the entire roadmap:
+
+<CommandBlock command={`  Code ──▶ CI/CD (build, test, SHA-tag image)         [Docker, GitHub Actions]
+                     │
+              Config repo (Git)                        [GitOps source of truth]
+                     │
+                Argo CD sync                            [Argo CD]
+                     ▼
+   Kubernetes cluster (provisioned by Terraform)        [Terraform, Kubernetes]
+                     │
+        ┌────────────┼─────────────┐
+   Prometheus     Zipkin        Grafana                 [Monitoring, Tracing]
+   (metrics)     (traces)      (dashboards+alerts)`} language="text" />
+
+That single diagram is your elevator pitch: *"I built and operate a containerised app, provisioned with IaC, deployed to Kubernetes via GitOps, with full monitoring and tracing."* That's a DevOps engineer.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Tell the End-to-End Story">
+  <div slot="tasks">
+    Write the sequence of what happens, across all your tooling, from the moment you push a one-line code change to the moment the new version is confirmed healthy in production.
+  </div>
+
+  <div slot="solution">
+    1. **Push** the change to the app repo.
+    2. **CI (GitHub Actions)** runs tests; on green, builds a **multi-stage Docker image** and pushes it tagged with the **commit SHA**.
+    3. **CI updates the config repo**, bumping the image tag in the Kubernetes manifests (a commit/PR).
+    4. **Argo CD** detects the config commit and **syncs** the cluster to match Git (automated, with self-heal/prune).
+    5. **Kubernetes** performs a rolling update; **readiness probes** keep traffic off new pods until healthy → zero downtime.
+    6. **Grafana** shows the request rate/errors/latency steady on the new version; **Zipkin** traces confirm healthy request paths.
+    7. If anything looks wrong, **`git revert`** the config change and Argo CD rolls back automatically.
+
+    No manual `kubectl`, every step traceable through Git — that's the whole system working as one.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="In the finished system, how does a code change reach production?"
+  options={[
+    "An engineer runs kubectl apply by hand",
+    "CI builds a SHA-tagged image and updates the config repo; Argo CD syncs the cluster to Git",
+    "Grafana deploys it",
+    "Terraform redeploys the app on every push"
+  ]}
+  answer={1}
+  explanation="The GitOps loop: CI produces an immutable image and commits the new tag to the config repo; Argo CD detects the commit and reconciles the cluster to match — no manual apply."
+/>
+
+<Quiz
+  question="How do monitoring and tracing complement each other during an incident?"
+  options={[
+    "They do the same thing",
+    "Monitoring (metrics) detects and alerts on the problem; tracing localizes exactly which span/service caused it",
+    "Tracing replaces the need for metrics",
+    "Monitoring deploys the fix"
+  ]}
+  answer={1}
+  explanation="Metrics surface that something is wrong (a latency or error spike) and fire alerts; traces then pinpoint the specific slow or failing span across services so you can fix the right thing."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Describe an end-to-end production-grade system you'd be proud to show.">
+  Tell it as one integrated story, naming the tool for each capability:
+
+  - **Source & CI/CD:** app in Git; GitHub Actions tests every push and, on main, builds a multi-stage, non-root Docker image tagged by commit SHA.
+  - **Infrastructure as code:** Terraform provisions the Kubernetes cluster with remote, locked state.
+  - **Orchestration:** the app runs on Kubernetes with liveness/readiness probes, resource limits, and an HPA for autoscaling.
+  - **GitOps delivery:** Argo CD keeps the cluster in sync with a config repo, so deploys are PRs and rollbacks are `git revert`, with drift auto-corrected.
+  - **Observability:** Prometheus scrapes `/metrics`, Grafana shows a RED dashboard with alerts, and Zipkin provides distributed traces for latency debugging.
+
+  Then close with **trade-offs and a war story** — a pipeline you hardened, a drift you caught, a latency bug you found in a trace. That combination — the architecture *plus* the judgment — is exactly what senior DevOps interviews look for.
+</InterviewPrep>
+
+---
+
+# 🎓 Track Complete
+
+Congratulations — you've built a complete, production-grade DevOps system and, with it, a portfolio that ties together **every** skill on the roadmap: Linux and Git foundations, containers, Kubernetes, Terraform, CI/CD, monitoring, tracing, GitOps, and even AI-assisted operations with MCP.
+
+You now have the vocabulary, the hands-on patterns, the interview answers, *and* a real project to point to. The best next step is to build your own variation — pick a different app, a different cloud, add a feature — and make the story yours.
+
+<NextLesson
+  title="Back to the Roadmap — explore any skill"
+  href="/ultimate-devops-learning-hub/"
+/>

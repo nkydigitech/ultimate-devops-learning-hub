@@ -1,0 +1,219 @@
+---
+title: "Project 1: Containerise an App & Ship it with CI/CD"
+description: "Build the first portfolio project — a Dockerised app with a full CI/CD pipeline that builds, tests, and publishes an image automatically."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Project 1: Containerise an App & Ship it with CI/CD"
+  description="From source code to an automatically built, tested, and published container image."
+  timeToRead="12 min"
+  icon="📦"
+  section="Production Projects"
+  sectionUrl="/production-projects/introduction"
+/>
+
+Project 1 takes your tiny app and gives it the first two pillars of production: it's **containerised** so it runs anywhere, and it's shipped by a **CI/CD pipeline** so every push is automatically built, tested, and published. No manual steps.
+
+---
+
+# 🎯 Learning Objectives
+
+- Write a production-quality Dockerfile (multi-stage, non-root)
+- Build a CI pipeline that tests on every push
+- Automatically build and publish an image to a registry
+- Tag images meaningfully for traceability
+
+---
+
+# Step 1 — A Production Dockerfile
+
+A good image is **small, secure, and cached well**. Use a multi-stage build (build tools stay out of the final image) and run as a non-root user:
+
+<CommandBlock command={`# ---- build stage ----
+FROM node:20-slim AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci                 # install deps (cached unless package files change)
+COPY . .
+RUN npm run build
+
+# ---- runtime stage ----
+FROM node:20-slim
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+USER node                  # never run as root
+EXPOSE 3000
+HEALTHCHECK CMD curl -f http://localhost:3000/health || exit 1
+CMD ["node", "dist/server.js"]`} language="dockerfile" />
+
+<Tip title="Order layers by change frequency">
+Copy `package*.json` and install *before* copying the rest of the source. Dependencies change rarely, so Docker reuses that cached layer on most builds — dramatically faster CI.
+</Tip>
+
+Verify it locally before automating:
+
+<CommandBlock command={`docker build -t myapp:dev .
+docker run -p 3000:3000 myapp:dev`} language="bash" />
+
+---
+
+# Step 2 — The CI Pipeline (Test on Every Push)
+
+Using GitHub Actions, the first job runs your tests on every push and pull request — the safety net that lets you move fast:
+
+<CommandBlock command={`# .github/workflows/ci.yml
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm test`} language="yaml" />
+
+Now a red X on a pull request means "don't merge this" — automated, every time.
+
+---
+
+# Step 3 — Build & Publish the Image
+
+Add a second job that builds the Docker image and pushes it to a registry (here, GitHub Container Registry) — but only on `main`, and only after tests pass:
+
+<CommandBlock command={`  build-and-push:
+    needs: test                      # only if tests pass
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: \${{ github.actor }}
+          password: \${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: |
+            ghcr.io/\${{ github.repository }}:latest
+            ghcr.io/\${{ github.repository }}:\${{ github.sha }}`} language="yaml" />
+
+<Warning title="Never hardcode credentials">
+The registry password comes from a secret (the built-in GITHUB_TOKEN here), never from plaintext in the file. Committing credentials is one of the most common — and most damaging — mistakes. Use your CI's secret store.
+</Warning>
+
+---
+
+# Step 4 — Tag for Traceability
+
+Notice the two tags above: `latest` and the **commit SHA**. This matters more than it looks:
+
+| Tag | Purpose |
+|-----|---------|
+| `latest` | Convenience — the newest main build |
+| `:<git-sha>` | **Immutable, traceable** — every image maps to exact source code |
+
+Deploying by SHA (not `latest`) means you always know *exactly* what code is running, and rollback is just deploying a previous SHA. This is the foundation Project 3's GitOps will build on.
+
+<Terminal
+  command="git push origin main"
+  output={`CI ✓ test        (12s)
+CI ✓ build-and-push
+   → pushed ghcr.io/you/myapp:latest
+   → pushed ghcr.io/you/myapp:a1b2c3d
+Deploy-ready image published.`}
+/>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Harden the Pipeline">
+  <div slot="tasks">
+    Your pipeline builds and pushes on every push to any branch, using only a `latest` tag, and runs the container as root. List three concrete improvements and why each matters.
+  </div>
+
+  <div slot="solution">
+    1. **Gate publishing to `main` and require tests first** (`needs: test`, `if: github.ref == 'refs/heads/main'`) — don't publish untested or feature-branch images.
+    2. **Tag by commit SHA, not just `latest`** — makes every image traceable to exact source and enables clean rollbacks.
+    3. **Run as a non-root user** (`USER node`) and add a `HEALTHCHECK` — reduces the blast radius of a compromise and lets orchestrators detect unhealthy containers.
+
+    Bonus: add an image vulnerability scan (e.g. Trivy) as a pipeline step before push.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why use a multi-stage Docker build?"
+  options={[
+    "It allows multiple apps in one image",
+    "Build tools and dependencies stay out of the final image, making it smaller and more secure",
+    "It is required to push to a registry",
+    "It disables caching"
+  ]}
+  answer={1}
+  explanation="A multi-stage build compiles in one stage and copies only the artifacts into a clean runtime stage, so build tools never ship in the final, smaller, more secure image."
+/>
+
+<Quiz
+  question="Why tag images with the Git commit SHA rather than only 'latest'?"
+  options={[
+    "SHAs are shorter",
+    "It makes each image immutable and traceable to exact source code, enabling reliable rollbacks",
+    "'latest' doesn't work on GitHub",
+    "It speeds up the build"
+  ]}
+  answer={1}
+  explanation="A SHA tag maps an image to the precise commit that produced it, so you always know what's running and can roll back by deploying a known previous SHA. 'latest' is mutable and ambiguous."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Describe a good CI/CD pipeline for a containerised app.">
+  A strong answer follows the flow and calls out quality gates:
+
+  1. **On every push/PR:** check out code, install deps, run tests and linters — a failing check blocks merge.
+  2. **On merge to main, after tests pass:** build the Docker image (multi-stage, non-root) and scan it for vulnerabilities.
+  3. **Publish** the image to a registry, tagged with both `latest` and the **commit SHA** for traceability.
+  4. **Deploy** (or hand off to a GitOps tool) referencing the SHA, so the running version is always known.
+
+  Key principles to mention: **secrets come from the CI secret store**, publishing is **gated on passing tests and the main branch**, images are **immutable and SHA-tagged**, and each stage has a clear **quality gate**. That's the difference between a script and a pipeline.
+</InterviewPrep>
+
+---
+
+# Summary
+
+Project 1 is done: your app is containerised with a solid Dockerfile and shipped by a CI/CD pipeline that tests, builds, and publishes traceable images automatically. Next, Project 2 provisions real infrastructure with Terraform and deploys the app to Kubernetes.
+
+<NextLesson
+  title="Project 2: Provision with Terraform & Deploy to Kubernetes"
+  href="/ultimate-devops-learning-hub/production-projects/iac-and-kubernetes"
+/>

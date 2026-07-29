@@ -1,0 +1,238 @@
+---
+title: "Project 2: Provision with Terraform & Deploy to Kubernetes"
+description: "Provision cloud infrastructure as code with Terraform, then deploy your containerised app to Kubernetes with health checks and scaling."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Project 2: Provision with Terraform & Deploy to Kubernetes"
+  description="Infrastructure as code creates the cluster; Kubernetes runs your app at scale."
+  timeToRead="12 min"
+  icon="☸️"
+  section="Production Projects"
+  sectionUrl="/production-projects/introduction"
+/>
+
+Your image is published — but where does it run? In Project 2 you provision infrastructure **as code** with Terraform (reproducible, version-controlled), then deploy your app to **Kubernetes** with the resilience features that make it production-worthy: health checks, resource limits, and autoscaling.
+
+---
+
+# 🎯 Learning Objectives
+
+- Provision a Kubernetes cluster with Terraform
+- Understand remote state and why it matters
+- Write Kubernetes manifests with health checks and resource limits
+- Expose the app and enable autoscaling
+
+---
+
+# Step 1 — Provision Infrastructure with Terraform
+
+Rather than clicking around a cloud console, you declare the cluster in code. A minimal example provisioning a managed cluster:
+
+<CommandBlock command={`# main.tf
+terraform {
+  backend "s3" {                 # remote state (see below)
+    bucket = "my-tf-state"
+    key    = "prod/cluster.tfstate"
+    region = "us-east-1"
+  }
+}
+
+module "cluster" {
+  source          = "terraform-aws-modules/eks/aws"
+  cluster_name    = "portfolio-cluster"
+  cluster_version = "1.30"
+  # ... vpc, node groups, etc.
+}
+
+output "cluster_endpoint" {
+  value = module.cluster.cluster_endpoint
+}`} language="hcl" />
+
+The workflow is always the same three commands:
+
+<CommandBlock command={`terraform init      # download providers, connect backend
+terraform plan      # preview what will change (review this!)
+terraform apply     # create the infrastructure`} language="bash" />
+
+<Warning title="Always read the plan">
+`terraform plan` shows exactly what will be created, changed, or destroyed. Never `apply` in production without reading it — a careless change can destroy and recreate a database. The plan is your safety review.
+</Warning>
+
+---
+
+# Step 2 — Use Remote State
+
+Notice the `backend "s3"` block. Terraform tracks reality in a **state file**. Keeping it on your laptop is a disaster waiting to happen — lost laptop, no teamwork, conflicting changes. **Remote state** (S3, GCS, Terraform Cloud) fixes this:
+
+- **Shared** — the whole team works from one source of truth
+- **Locked** — prevents two people applying at once and corrupting state
+- **Durable & versioned** — survives your machine and can be rolled back
+
+<Tip title="State is sensitive">
+The state file can contain secrets (passwords, keys) in plaintext. Store it in an encrypted, access-controlled backend — never commit it to Git.
+</Tip>
+
+---
+
+# Step 3 — Deploy to Kubernetes
+
+With the cluster up, deploy your Project 1 image. A production-worthy Deployment includes **probes** and **resource limits** — not just the bare minimum:
+
+<CommandBlock command={`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: myapp }
+  template:
+    metadata:
+      labels: { app: myapp }
+    spec:
+      containers:
+        - name: myapp
+          image: ghcr.io/you/myapp:a1b2c3d      # deploy by SHA, not latest
+          ports:
+            - containerPort: 3000
+          livenessProbe:                          # restart if hung
+            httpGet: { path: /health, port: 3000 }
+            initialDelaySeconds: 5
+          readinessProbe:                         # don't send traffic until ready
+            httpGet: { path: /health, port: 3000 }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }`} language="yaml" />
+
+Expose it with a Service so traffic can reach the pods:
+
+<CommandBlock command={`apiVersion: v1
+kind: Service
+metadata:
+  name: myapp
+spec:
+  type: LoadBalancer
+  selector: { app: myapp }
+  ports:
+    - port: 80
+      targetPort: 3000`} language="yaml" />
+
+<Terminal
+  command="kubectl apply -f k8s/ && kubectl get pods"
+  output={`deployment.apps/myapp created
+service/myapp created
+
+NAME                     READY   STATUS    RESTARTS   AGE
+myapp-7d9f8c6b4-2xk9p    1/1     Running   0          20s
+myapp-7d9f8c6b4-8mn4q    1/1     Running   0          20s
+myapp-7d9f8c6b4-p7wz3    1/1     Running   0          20s`}
+/>
+
+---
+
+# Step 4 — Autoscale
+
+Let Kubernetes add and remove pods based on load with a HorizontalPodAutoscaler:
+
+<CommandBlock command={`apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }`} language="yaml" />
+
+Now the app scales out past 3 pods when CPU crosses 70%, and back in when load drops — capacity that follows demand, defined declaratively.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Explain the Probes">
+  <div slot="tasks">
+    Your app occasionally hangs (still "running" but not responding), and during startup it briefly returns errors before it's ready. Which probe addresses each problem, and what would happen without them?
+  </div>
+
+  <div slot="solution">
+    - **Liveness probe** handles the *hang*: when `/health` stops responding, Kubernetes restarts the pod. Without it, a hung pod would keep receiving traffic and failing forever.
+    - **Readiness probe** handles *startup*: the pod is kept out of the Service's load balancer until `/health` succeeds. Without it, users would hit the pod during its error-y startup window.
+
+    Together they give you self-healing and zero-downtime rollouts — core reasons Kubernetes is production-grade.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Why should Terraform state be stored in a remote backend rather than locally?"
+  options={[
+    "It makes terraform apply faster",
+    "It provides a shared, locked, durable source of truth so teams don't corrupt or lose state",
+    "It is required to write HCL",
+    "It hides the infrastructure from the cloud provider"
+  ]}
+  answer={1}
+  explanation="Remote state is shared across the team, locked to prevent concurrent applies, and durable/versioned — avoiding the loss and conflicts that come with a local state file."
+/>
+
+<Quiz
+  question="What is the difference between a liveness and a readiness probe?"
+  options={[
+    "They are the same",
+    "Liveness restarts a hung container; readiness controls whether the pod receives traffic yet",
+    "Liveness scales the app; readiness deletes it",
+    "Readiness restarts the node"
+  ]}
+  answer={1}
+  explanation="A failing liveness probe triggers a restart of a stuck container; a readiness probe gates traffic — the pod is only added to the Service once it reports ready."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Walk through how you'd deploy a containerised app to production on Kubernetes.">
+  A complete answer moves from infrastructure to a resilient deployment:
+
+  1. **Provision with Terraform** — declare the cluster and networking as code, use **remote, locked state**, and always review `terraform plan` before `apply`.
+  2. **Deploy by immutable image tag** (the commit SHA from CI), never `latest`, so the running version is known.
+  3. **Add resilience**: liveness and readiness probes (self-healing + zero-downtime rollouts), and **resource requests/limits** so the scheduler can place pods and one app can't starve others.
+  4. **Expose** via a Service (and Ingress for HTTP routing/TLS).
+  5. **Autoscale** with an HPA based on CPU or custom metrics.
+
+  I'd also mention rolling updates for safe deploys and keeping everything — Terraform and manifests — in Git, which sets up the GitOps workflow next.
+</InterviewPrep>
+
+---
+
+# Summary
+
+Project 2 is complete: Terraform provisions your cluster reproducibly with remote state, and your app runs on Kubernetes with probes, resource limits, a Service, and autoscaling. The final project adds the operational layer — observability and GitOps — to make the whole system truly production-grade.
+
+<NextLesson
+  title="Project 3: Add Monitoring, Tracing & GitOps"
+  href="/ultimate-devops-learning-hub/production-projects/observability-and-gitops"
+/>

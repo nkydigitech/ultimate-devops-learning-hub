@@ -1,0 +1,173 @@
+---
+title: "Building Production-Grade DevOps Projects"
+description: "Why hands-on projects matter, what 'production-grade' really means, and the portfolio you'll build across this track."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Building Production-Grade DevOps Projects"
+  description="Knowledge becomes skill when you ship something real. Here's how to prove it."
+  timeToRead="9 min"
+  icon="🏗️"
+  section="Production Projects"
+  sectionUrl="/production-projects/introduction"
+/>
+
+You've learned the tools individually — Linux, Docker, Kubernetes, Terraform, CI/CD, monitoring, tracing, GitOps. Employers don't hire for *knowing* tools; they hire for *combining* them to ship and operate real systems. This track turns your knowledge into a **portfolio** by building three connected, production-grade projects.
+
+---
+
+# 🎯 Learning Objectives
+
+- Understand why projects matter more than tutorials for your career
+- Define what "production-grade" actually means
+- See the three projects you'll build and how they connect
+- Set up the foundation you'll reuse across them
+
+---
+
+# Why Projects Beat Tutorials
+
+Following a tutorial proves you can follow a tutorial. A **project** proves you can make independent decisions, integrate tools, and handle the messy parts — which is exactly the job.
+
+- **Interviews revolve around them** — "walk me through a project you built" is the most common senior question.
+- **They force integration** — you discover that Docker, Terraform, and CI only *feel* learned once you wire them together.
+- **They're evidence** — a public repo and a running system beat any certificate on a résumé.
+
+<Tip title="Depth over breadth">
+One project you can explain end-to-end — every decision, every trade-off — is worth more than ten half-finished ones. Build fewer, finish them, and understand them completely.
+</Tip>
+
+---
+
+# What "Production-Grade" Means
+
+A demo runs on your laptop. A *production-grade* system is built as if real users and a real team depended on it. The difference is these qualities:
+
+| Quality | What it looks like |
+|---------|--------------------|
+| **Automated** | No manual steps — build, test, and deploy run through a pipeline |
+| **Reproducible** | Infrastructure is code (Terraform); anyone can recreate it |
+| **Observable** | Metrics, logs, and traces are in place before you need them |
+| **Resilient** | Health checks, restarts, and rollbacks are built in |
+| **Secure** | Secrets are managed properly; least privilege everywhere |
+| **Documented** | A README that lets someone else run and understand it |
+
+You don't need all of these on day one — but a production-grade project *grows toward* them deliberately.
+
+---
+
+# The Three Projects
+
+This track builds a portfolio in three escalating projects, each reusing the last:
+
+<CommandBlock command={`Project 1 — Containerise & Ship
+  A web app → Dockerfile → CI/CD pipeline → automated deploy
+
+Project 2 — Infrastructure as Code & Orchestration
+  Terraform provisions a cluster → app deployed to Kubernetes
+
+Project 3 — Observability & GitOps
+  Prometheus + Grafana + tracing added → Argo CD drives deploys`} language="text" />
+
+By the end you'll have a single, coherent system — an app that is containerised, provisioned with IaC, deployed to Kubernetes, monitored, traced, and delivered via GitOps. That's a genuine DevOps portfolio piece.
+
+---
+
+# Set Up Your Foundation
+
+Before Project 1, put the basics in place — you'll reuse them throughout:
+
+<CommandBlock command={`# a git repo (the source of truth for everything)
+git init my-devops-project && cd my-devops-project
+
+# a simple app to deploy (any language; a small web API is ideal)
+#   - exposes an HTTP endpoint
+#   - exposes /health for health checks
+#   - exposes /metrics for Prometheus (added in Project 3)
+
+# a clear README describing what it is and how to run it
+echo "# My DevOps Project" > README.md`} language="bash" />
+
+<Warning title="Start smaller than you think">
+The most common failure is over-scoping. A tiny app (a single "hello + /health" API) is more than enough to demonstrate the *entire* DevOps lifecycle. Keep the app trivial so the interesting part — the pipeline, infra, and observability — stays the focus.
+</Warning>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Scope Your Project">
+  <div slot="tasks">
+    Write a one-paragraph scope for your portfolio app. Decide: what does the app do (keep it tiny), what endpoints does it expose, and what will "done" look like for Project 1?
+  </div>
+
+  <div slot="solution">
+    A strong scope is deliberately small, e.g.: *"A single-endpoint HTTP API in Node/Python returning a JSON greeting, plus `/health` (liveness) and later `/metrics`. Done for Project 1 = the app has a Dockerfile, a CI pipeline that builds and tests on every push, pushes an image to a registry, and deploys automatically."* The point isn't the app's features — it's demonstrating the lifecycle around it. Anything you can build in an hour is the right size.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What most distinguishes a 'production-grade' project from a demo?"
+  options={[
+    "It uses more programming languages",
+    "It is automated, reproducible, observable, resilient, secure, and documented",
+    "It has a bigger application with many features",
+    "It runs only on the developer's laptop"
+  ]}
+  answer={1}
+  explanation="Production-grade is about how the system is built and operated — automation, reproducibility, observability, resilience, security, and docs — not about the size or feature count of the app itself."
+/>
+
+<Quiz
+  question="Why keep the sample application deliberately small?"
+  options={[
+    "Small apps are more secure",
+    "So the focus stays on the DevOps lifecycle (pipeline, infra, observability) rather than app features",
+    "Because Kubernetes can't run large apps",
+    "To avoid using Git"
+  ]}
+  answer={1}
+  explanation="A tiny app is enough to demonstrate the full lifecycle. Keeping it trivial avoids over-scoping and keeps attention on the DevOps practices you're showcasing."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="An interviewer asks you to describe a DevOps project you built. What makes a great answer?">
+  Structure it around decisions and trade-offs, not just a tool list:
+
+  - **Context:** what the system does and why (even if the app is simple, frame the goal).
+  - **Architecture:** how the pieces fit — containerisation, IaC, orchestration, CI/CD, observability.
+  - **Decisions and trade-offs:** *why* you chose Kubernetes over plain containers, why GitOps, how you handled secrets — this is what separates senior answers.
+  - **Problems you hit and solved:** a real debugging story (a broken pipeline, a drift issue, a latency bug you found with tracing) is gold.
+  - **What you'd improve:** shows maturity and self-awareness.
+
+  The projects in this track are designed to give you exactly these stories.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You understand why projects matter, what production-grade means, and the three-project arc ahead. With your repo and tiny app scoped, let's build Project 1: containerising the app and shipping it through a real CI/CD pipeline.
+
+<NextLesson
+  title="Project 1: Containerise an App & Ship it with CI/CD"
+  href="/ultimate-devops-learning-hub/production-projects/containerize-and-cicd"
+/>
