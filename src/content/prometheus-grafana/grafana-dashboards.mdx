@@ -1,0 +1,189 @@
+---
+title: "Visualising Metrics with Grafana Dashboards"
+description: "Connect Grafana to Prometheus, build panels, use variables, and design dashboards people actually read."
+order: 3
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Visualising Metrics with Grafana Dashboards"
+  description="Turn PromQL into panels, rows, and dashboards your whole team can read at a glance."
+  timeToRead="10 min"
+  icon="📉"
+  section="Prometheus & Grafana"
+  sectionUrl="/prometheus-grafana/introduction"
+/>
+
+Prometheus stores the numbers; **Grafana** makes them make sense. In this lesson you'll connect Grafana to Prometheus, build panels from PromQL, and learn what separates a useful dashboard from a wall of noise.
+
+---
+
+# 🎯 Learning Objectives
+
+- Add Prometheus as a Grafana data source
+- Build a panel from a PromQL query
+- Use variables to make dashboards reusable
+- Apply dashboard design best practices
+
+---
+
+# Step 1 — Add the Data Source
+
+Grafana talks to many backends. To read Prometheus, add it as a **data source** — in the UI under *Connections → Data sources*, or as config-as-code:
+
+<CommandBlock command={`# grafana/provisioning/datasources/prometheus.yml
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true`} language="yaml" />
+
+<Tip title="Provision, don't click">
+Clicking through the UI is fine to learn, but in real setups you provision data sources and dashboards from files (as above) so they're version-controlled and reproducible — the same GitOps mindset you use everywhere else.
+</Tip>
+
+---
+
+# Step 2 — Build a Panel
+
+A **panel** is a single visualization driven by one or more queries. Create a panel, pick the Prometheus data source, and enter a PromQL query. For a request-rate graph:
+
+<CommandBlock command={`sum(rate(http_requests_total[5m])) by (status)`} language="text" />
+
+Grafana draws one line per `status` label. Choose a visualization type to match the data:
+
+| Visualization | Best for |
+|---------------|----------|
+| **Time series** | Rates and values over time (the default) |
+| **Stat** | A single big number (e.g. current error rate) |
+| **Gauge** | A value against a threshold (e.g. CPU %) |
+| **Bar gauge / Table** | Comparing many labelled values at once |
+
+---
+
+# Step 3 — Make it Reusable with Variables
+
+Hard-coding a service name into every panel means one dashboard per service. Instead, define a **template variable** and let users pick from a dropdown.
+
+Create a variable named `service` whose values come from a query, then reference it in panels with the `$service` syntax:
+
+<CommandBlock command={`sum(rate(http_requests_total{service="$service"}[5m])) by (status)`} language="text" />
+
+Now one dashboard covers every service — the dropdown at the top swaps `$service` for whatever the viewer selects.
+
+<Warning title="Panels are only as good as the query">
+If a panel looks wrong, 90% of the time it's the PromQL, not Grafana. Test the query in the Prometheus UI first, then paste it into the panel.
+</Warning>
+
+---
+
+# Dashboard Design That People Actually Use
+
+A dashboard is a communication tool. Good ones follow a few rules:
+
+- **Top-left is prime real estate** — put the most important health signals there (the "is it up and healthy?" numbers).
+- **Follow the RED method** for services: **R**ate, **E**rrors, **D**uration — the three lines that tell you almost everything.
+- **Use USE for resources**: **U**tilization, **S**aturation, **E**rrors for hosts and disks.
+- **Set units and thresholds** so a value turns red when it's actually bad.
+- **Fewer panels, clearer story** — 8 focused panels beat 40 you never look at.
+
+<CommandBlock command={`┌─────────────┬─────────────┬─────────────┐
+│  Req Rate   │  Error %    │  p95 Latency│   ← at-a-glance health
+├─────────────┴─────────────┴─────────────┤
+│         Requests/sec by status          │   ← trends
+├─────────────────────────────────────────┤
+│      Latency percentiles over time      │
+└─────────────────────────────────────────┘`} language="text" />
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Design a Service Dashboard">
+  <div slot="tasks">
+    Sketch the queries for a RED dashboard for a service called `checkout`. Write PromQL for:
+    1. Request **rate**
+    2. **Error** ratio (5xx as a fraction of all requests)
+    3. **Duration** — p95 latency (assume a histogram `http_request_duration_seconds_bucket`)
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`# Rate
+sum(rate(http_requests_total{service="checkout"}[5m]))
+
+# Errors (5xx fraction)
+sum(rate(http_requests_total{service="checkout",status=~"5.."}[5m]))
+/
+sum(rate(http_requests_total{service="checkout"}[5m]))
+
+# Duration (p95)
+histogram_quantile(0.95,
+  sum(rate(http_request_duration_seconds_bucket{service="checkout"}[5m])) by (le))`} language="text" />
+    The \`=~"5.."\` is a regex label match for any 5xx status; \`histogram_quantile\` over the \`_bucket\` series gives you percentile latency.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What does the RED method recommend tracking for a service?"
+  options={[
+    "Reads, Edits, Deletes",
+    "Rate, Errors, Duration",
+    "Requests, Endpoints, Databases",
+    "Reliability, Efficiency, Density"
+  ]}
+  answer={1}
+  explanation="RED = Rate (traffic), Errors (failures), Duration (latency). These three signals capture the health of most request-driven services."
+/>
+
+<Quiz
+  question="Why use a template variable like $service in a dashboard?"
+  options={[
+    "It makes queries run faster",
+    "It lets one dashboard serve many services via a dropdown, instead of duplicating dashboards",
+    "It is required by Prometheus",
+    "It hides the data source"
+  ]}
+  answer={1}
+  explanation="Variables parameterise the dashboard so a single definition works for any service the viewer selects — reusable and DRY."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How do you decide what to put on a monitoring dashboard?">
+  Start from the questions the dashboard must answer, not from the metrics you happen to have:
+
+  - **For services**, use RED (Rate, Errors, Duration) — it maps directly to user experience.
+  - **For infrastructure**, use USE (Utilization, Saturation, Errors).
+  - **Lead with health signals** at the top so on-call engineers can triage in seconds.
+  - **Tie panels to SLOs** where possible, so "is this bad?" has an objective answer.
+
+  Above all, keep it focused: a dashboard nobody understands during an incident is worse than none.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now connect Grafana to Prometheus, build panels from PromQL, parameterise dashboards with variables, and design views around RED/USE. The final piece of monitoring is being *told* when something breaks — so next we set up alerting.
+
+<NextLesson
+  title="Alerting with Alertmanager & Best Practices"
+  href="/ultimate-devops-learning-hub/prometheus-grafana/alerting"
+/>

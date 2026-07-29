@@ -1,0 +1,199 @@
+---
+title: "Alerting with Alertmanager & Best Practices"
+description: "Write Prometheus alerting rules, route notifications with Alertmanager, and design alerts that page humans only when it matters."
+order: 4
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Alerting with Alertmanager & Best Practices"
+  description="Dashboards are for when you're looking. Alerts are for when you're not."
+  timeToRead="10 min"
+  icon="🚨"
+  section="Prometheus & Grafana"
+  sectionUrl="/prometheus-grafana/introduction"
+/>
+
+You can't watch a dashboard 24/7. **Alerting** flips the model: instead of you checking the system, the system tells you when something's wrong. Prometheus evaluates alert rules; **Alertmanager** decides who gets notified and how.
+
+---
+
+# 🎯 Learning Objectives
+
+- Write a Prometheus alerting rule
+- Understand how Alertmanager routes and groups alerts
+- Send notifications to a receiver (e.g. Slack)
+- Apply best practices so alerts are actionable, not noise
+
+---
+
+# How Alerting Works
+
+Alerting is split into two jobs on purpose:
+
+<CommandBlock command={`Prometheus                         Alertmanager
+──────────                         ────────────
+evaluates alert rules  ──fires──▶  groups, deduplicates, silences
+against metrics                    routes to the right receiver
+                                   ──▶ Slack / email / PagerDuty`} language="text" />
+
+- **Prometheus** decides *whether* an alert is firing (based on PromQL).
+- **Alertmanager** decides *what to do* about firing alerts — grouping, silencing, and routing.
+
+---
+
+# Writing an Alert Rule
+
+Alert rules live in a rules file that Prometheus loads. Each rule is a PromQL expression plus a duration and metadata:
+
+<CommandBlock command={`groups:
+  - name: service-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate on {{ $labels.service }}"
+          description: "Error rate is above 5% for 10 minutes."`} language="yaml" />
+
+Key parts:
+
+- **`expr`** — the condition. Here: 5xx errors are more than 5% of traffic.
+- **`for`** — how long it must stay true before firing. This prevents flapping on a one-second blip.
+- **`labels`** — attached to the alert (e.g. `severity`) and used for routing.
+- **`annotations`** — human-readable context sent in the notification.
+
+<Tip title="The 'for' clause is your friend">
+Almost every good alert has a `for` duration. Alerting the instant a value crosses a line produces constant false alarms; requiring it to persist for a few minutes filters out noise.
+</Tip>
+
+---
+
+# Routing with Alertmanager
+
+Alertmanager's config decides where alerts go and how they're grouped:
+
+<CommandBlock command={`route:
+  group_by: ["alertname", "service"]   # collapse related alerts into one message
+  group_wait: 30s
+  repeat_interval: 4h
+  receiver: "slack-default"
+  routes:
+    - match:
+        severity: critical
+      receiver: "pagerduty"            # critical → page a human
+
+receivers:
+  - name: "slack-default"
+    slack_configs:
+      - channel: "#alerts"
+  - name: "pagerduty"
+    pagerduty_configs:
+      - routing_key: "<your-key>"`} language="yaml" />
+
+`group_by` is powerful: if 50 pods all fail at once, you get **one** grouped notification, not 50.
+
+---
+
+# Best Practices: Alert on Symptoms, Not Causes
+
+Bad alerting trains people to ignore alerts. Good alerting is rare and always actionable.
+
+- **Alert on symptoms users feel** (high error rate, high latency, site down) rather than every internal cause (one CPU spike).
+- **Every alert must be actionable** — if there's nothing to do, it shouldn't page.
+- **Tier by severity**: `critical` pages a human now; `warning` goes to a channel to review later.
+- **Include a runbook link** in annotations so the responder knows the first steps.
+- **Tune `for` and thresholds** based on real incidents — alert fatigue is a real outage risk.
+
+<Warning title="Alert fatigue is dangerous">
+When alerts fire constantly for non-issues, people mute them — and then miss the real one. Fewer, sharper alerts beat a firehose every time.
+</Warning>
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Write an 'Instance Down' Alert">
+  <div slot="tasks">
+    Write a Prometheus alert rule that fires when a target has been down for 2 minutes. (Hint: Prometheus exposes an `up` metric that is `1` when a scrape succeeds and `0` when it fails.)
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`groups:
+  - name: availability
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "{{ $labels.job }} target has been unreachable for 2 minutes."`} language="yaml" />
+    The \`up == 0\` expression is true whenever a scrape fails; the \`for: 2m\` avoids paging on a single missed scrape.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="What is the purpose of the 'for' clause in an alert rule?"
+  options={[
+    "It sets how often the alert repeats",
+    "It requires the condition to stay true for a duration before firing, reducing false alarms",
+    "It chooses the notification channel",
+    "It defines the metric name"
+  ]}
+  answer={1}
+  explanation="'for' requires the condition to hold continuously for the given duration before the alert fires, filtering out brief spikes."
+/>
+
+<Quiz
+  question="Which component is responsible for grouping, silencing, and routing notifications?"
+  options={["Prometheus", "Grafana", "Alertmanager", "node_exporter"]}
+  answer={2}
+  explanation="Prometheus evaluates the rules and fires alerts; Alertmanager receives them and handles grouping, deduplication, silencing, and routing to receivers."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="How do you avoid alert fatigue while still catching real problems?">
+  It comes down to discipline about what deserves a page:
+
+  - **Alert on user-facing symptoms** (errors, latency, availability), not every internal metric.
+  - **Make every alert actionable** and attach a runbook — if there's no action, it's a dashboard, not an alert.
+  - **Use severity tiers** so only truly urgent things page a human; everything else is reviewed asynchronously.
+  - **Use `for` durations and sensible thresholds** to avoid flapping.
+  - **Review and prune alerts regularly** — retire ones that never lead to action.
+
+  The goal is that when a page fires, people trust it and act — that trust is the whole point of alerting.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You've completed the monitoring track: you understand metrics, Prometheus and PromQL, Grafana dashboards, and alerting with Alertmanager. You can now see your systems *and* be told when they break. Next up is **Argo CD** and the GitOps approach to deploying all of this.
+
+<NextLesson
+  title="Introduction to GitOps & Argo CD"
+  href="/ultimate-devops-learning-hub/argocd/introduction"
+/>

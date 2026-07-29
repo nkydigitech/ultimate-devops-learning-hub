@@ -1,0 +1,189 @@
+---
+title: "Prometheus Fundamentals: Scraping & PromQL"
+description: "Learn the Prometheus data model, how scraping and exporters work, and how to query metrics with PromQL."
+order: 2
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Prometheus Fundamentals: Scraping & PromQL"
+  description="The data model, scrape config, and the query language that ties it together."
+  timeToRead="11 min"
+  icon="📈"
+  section="Prometheus & Grafana"
+  sectionUrl="/prometheus-grafana/introduction"
+/>
+
+Now that you know *why* we monitor, let's get concrete about how Prometheus stores data and how you ask it questions with **PromQL**, its query language.
+
+---
+
+# 🎯 Learning Objectives
+
+- Understand the Prometheus data model (metric name + labels + value + timestamp)
+- Configure a scrape job in `prometheus.yml`
+- Know the four metric types
+- Write basic PromQL queries, including `rate()`
+
+---
+
+# The Data Model
+
+Every sample Prometheus stores is a **time series** identified by a metric name plus a set of labels:
+
+<CommandBlock command={`http_requests_total{method="GET", path="/api", status="200"}
+└──────┬──────┘ └──────────────────┬───────────────────┘
+   metric name                   labels`} language="text" />
+
+Each unique combination of name + labels is its own series, sampled over time. Labels are what make metrics powerful — you can later filter and aggregate across any dimension.
+
+<Warning title="Watch your label cardinality">
+Never put unbounded values (like a user ID, email, or request ID) in a label. Each unique value creates a new time series, and millions of series will overwhelm Prometheus. Keep labels to small, finite sets like `status`, `method`, or `region`.
+</Warning>
+
+---
+
+# The Four Metric Types
+
+| Type | Meaning | Example |
+|------|---------|---------|
+| **Counter** | Only goes up (reset on restart) | Total requests served |
+| **Gauge** | Goes up and down | Current memory in use, temperature |
+| **Histogram** | Buckets of observations | Request duration distribution |
+| **Summary** | Similar to histogram, client-side quantiles | Request latency percentiles |
+
+The rule of thumb: use a **counter** for things you accumulate, a **gauge** for things that fluctuate, and a **histogram** for distributions like latency.
+
+---
+
+# Configuring a Scrape
+
+Prometheus reads a YAML config that lists what to scrape and how often:
+
+<CommandBlock command={`global:
+  scrape_interval: 15s          # how often to scrape every target
+
+scrape_configs:
+  - job_name: "prometheus"      # Prometheus scraping itself
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "my-app"
+    static_configs:
+      - targets: ["app:8080"]   # scrapes http://app:8080/metrics`} language="yaml" />
+
+Start Prometheus pointing at that file and it begins scraping immediately:
+
+<Terminal
+  command="prometheus --config.file=prometheus.yml"
+  output={`level=info msg="Starting Prometheus"
+level=info msg="Server is ready to receive web and API requests."
+level=info msg="Scrape pool started" job=my-app`}
+/>
+
+<Tip title="Exporters do the work for you">
+Can't add metrics to something you don't control (like a Linux host or PostgreSQL)? Run an **exporter** — a small sidecar that translates system stats into a `/metrics` endpoint. `node_exporter` (hosts) and `blackbox_exporter` (probing URLs) are the most common.
+</Tip>
+
+---
+
+# Querying with PromQL
+
+Open the Prometheus UI at port 9090 and type queries. The simplest query is just a metric name — but the real power is filtering and functions.
+
+**Filter by label:**
+
+<CommandBlock command={`http_requests_total{status="500"}`} language="text" />
+
+**Rate of increase — the single most useful function.** Counters always climb, so you rarely graph them raw; instead you graph how fast they climb with `rate()`:
+
+<CommandBlock command={`rate(http_requests_total{status="500"}[5m])`} language="text" />
+
+This reads: *the per-second rate of 500 errors, averaged over the last 5 minutes.*
+
+**Aggregate across series** with `sum`, `avg`, `by`:
+
+<CommandBlock command={`sum(rate(http_requests_total[5m])) by (status)`} language="text" />
+
+That gives you total request rate broken down by status code — exactly what you'd graph on a dashboard.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Write the Queries">
+  <div slot="tasks">
+    Write PromQL for each:
+    1. Current value of the gauge `node_memory_active_bytes`
+    2. Per-second rate of all HTTP requests over the last 5 minutes
+    3. Total request rate grouped by `path`
+  </div>
+
+  <div slot="solution">
+    <CommandBlock command={`# 1
+node_memory_active_bytes
+
+# 2
+rate(http_requests_total[5m])
+
+# 3
+sum(rate(http_requests_total[5m])) by (path)`} language="text" />
+    Gauges are read directly; counters are almost always wrapped in \`rate()\`; \`sum(...) by (label)\` collapses series into per-label totals.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="Which metric type should you use for a value that only ever increases, like total requests served?"
+  options={["Gauge", "Counter", "Histogram", "Summary"]}
+  answer={1}
+  explanation="A counter is for cumulative values that only go up (and reset to zero on restart). You typically apply rate() to it for graphing."
+/>
+
+<Quiz
+  question="Why do we usually wrap counters in rate() before graphing them?"
+  options={[
+    "Counters can't be graphed at all",
+    "rate() converts an ever-increasing total into a meaningful per-second change over a window",
+    "rate() makes the query faster",
+    "It converts the counter to a gauge permanently"
+  ]}
+  answer={1}
+  explanation="A raw counter just climbs forever, which isn't insightful. rate() gives you the per-second rate of increase over a time window — e.g. requests per second right now."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="What is label cardinality and why does it matter?">
+  Cardinality is the number of unique time series a metric produces, driven by the number of unique label-value combinations. It matters because:
+
+  - Prometheus keeps active series in memory; high cardinality causes huge memory use and slow queries.
+  - A single careless label (like `user_id` or `request_id`) can explode one metric into millions of series.
+
+  The fix is discipline: only use labels with small, bounded sets of values (status codes, methods, regions, service names). High-cardinality data belongs in logs or traces, not metric labels.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You can now read the Prometheus data model, configure a scrape job, pick the right metric type, and write PromQL — including the all-important `rate()`. Next, we take these queries and turn them into beautiful, shareable dashboards in Grafana.
+
+<NextLesson
+  title="Visualising Metrics with Grafana Dashboards"
+  href="/ultimate-devops-learning-hub/prometheus-grafana/grafana-dashboards"
+/>

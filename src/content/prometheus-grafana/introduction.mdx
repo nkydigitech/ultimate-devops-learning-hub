@@ -1,0 +1,182 @@
+---
+title: "Introduction to Monitoring with Prometheus & Grafana"
+description: "Understand why monitoring matters, the difference between metrics, logs and traces, and how Prometheus and Grafana work together."
+order: 1
+---
+
+import LessonHeader from "../../components/LessonHeader.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import Terminal from "../../components/Terminal.astro";
+import Tip from "../../components/Tip.astro";
+import Warning from "../../components/Warning.astro";
+import Quiz from "../../components/Quiz.astro";
+import InterviewPrep from "../../components/InterviewPrep.astro";
+import Exercise from "../../components/Exercise.astro";
+import NextLesson from "../../components/NextLesson.astro";
+
+<LessonHeader
+  title="Introduction to Monitoring with Prometheus & Grafana"
+  description="You can't fix what you can't see — monitoring is how you see."
+  timeToRead="9 min"
+  icon="📊"
+  section="Prometheus & Grafana"
+  sectionUrl="/prometheus-grafana/introduction"
+/>
+
+Shipping software is only half the job — you also need to know it's *healthy* once it's running. Is the app slow? Is memory creeping up? Did errors just spike after that deploy? **Monitoring** answers these questions in real time, and **Prometheus** + **Grafana** are the most popular open-source pair for doing it.
+
+---
+
+# 🎯 Learning Objectives
+
+By the end of this lesson you will:
+
+- Understand why monitoring is essential in DevOps
+- Know the difference between metrics, logs, and traces
+- Understand what Prometheus and Grafana each do
+- See how they fit together into a monitoring stack
+
+---
+
+# Why Monitor at All?
+
+Without monitoring you find out about problems from *angry users*, not your dashboards. Good monitoring lets you:
+
+- **Detect** issues before customers do
+- **Diagnose** the cause quickly instead of guessing
+- **Decide** when to scale up or down based on real load
+- **Prove** your system meets its reliability targets (SLOs)
+
+<Tip title="Observability in one sentence">
+Monitoring tells you *that* something is wrong; observability helps you understand *why*. Metrics, logs, and traces together give you observability.
+</Tip>
+
+---
+
+# The Three Pillars of Observability
+
+| Pillar | Answers | Example tool |
+|--------|---------|--------------|
+| **Metrics** | "How much / how many / how fast?" (numbers over time) | Prometheus |
+| **Logs** | "What exactly happened, in detail?" | Loki, ELK |
+| **Traces** | "Where did the time go across services?" | Zipkin, Jaeger |
+
+This section is about **metrics** — lightweight numeric measurements sampled over time, like CPU usage, request rate, or error count.
+
+---
+
+# What is Prometheus?
+
+**Prometheus** is a time-series database and monitoring system. Its job is to **collect** and **store** metrics, and let you **query** them.
+
+Its defining feature is the **pull model**: instead of your apps pushing data out, Prometheus reaches out and **scrapes** an HTTP endpoint (usually `/metrics`) on each target on a schedule.
+
+<CommandBlock command={`  ┌────────────┐   scrape /metrics   ┌──────────────┐
+  │ Your App   │ ◀────────────────── │  Prometheus  │
+  │ (exposes   │                     │ (stores +    │
+  │  /metrics) │ ──────────────────▶ │  queries)    │
+  └────────────┘   numeric samples   └──────────────┘`} language="text" />
+
+Metrics look like simple text — a name, optional labels, and a value:
+
+<CommandBlock command={`http_requests_total{method="GET",status="200"} 1027
+http_requests_total{method="GET",status="500"} 3
+process_cpu_seconds_total 4412.5`} language="text" />
+
+The `{...}` part holds **labels** — dimensions you can filter and group by later.
+
+---
+
+# What is Grafana?
+
+Prometheus stores numbers, but staring at raw numbers is painful. **Grafana** is the visualization layer: it connects to Prometheus (and many other sources) and turns those metrics into **dashboards** — graphs, gauges, and tables — plus alerts.
+
+| Tool | Role |
+|------|------|
+| **Prometheus** | Collects, stores, and queries metrics |
+| **Grafana** | Visualizes metrics and builds dashboards |
+
+Together they form the classic open-source monitoring stack: Prometheus is the *engine*, Grafana is the *windshield*.
+
+---
+
+# The Full Picture
+
+<CommandBlock command={`Apps + Exporters ──/metrics──▶ Prometheus ──queries──▶ Grafana ──▶ You
+                                   │
+                                   └──▶ Alertmanager ──▶ Slack / email / PagerDuty`} language="text" />
+
+An **exporter** is a small helper that exposes metrics for things that can't do it themselves (a database, a Linux host, etc.). We'll meet those next.
+
+---
+
+# 🧪 Hands-on Lab
+
+<Exercise title="Spot the Metric">
+  <div slot="tasks">
+    Given this scrape output, answer: how many total GET requests returned a server error (status 500)?
+
+    ```
+    http_requests_total{method="GET",status="200"} 1027
+    http_requests_total{method="GET",status="500"} 3
+    http_requests_total{method="POST",status="200"} 88
+    ```
+  </div>
+
+  <div slot="solution">
+    **3.** Only the second line matches both `method="GET"` and `status="500"`. Labels are what let you slice a single metric name (`http_requests_total`) into many precise dimensions.
+  </div>
+</Exercise>
+
+---
+
+# 🧠 Knowledge Check
+
+<Quiz
+  question="How does Prometheus collect metrics from targets by default?"
+  options={[
+    "Targets push metrics to Prometheus",
+    "Prometheus scrapes (pulls) a /metrics endpoint on each target",
+    "It reads them from log files",
+    "It queries the application database"
+  ]}
+  answer={1}
+  explanation="Prometheus uses a pull model: it periodically scrapes an HTTP /metrics endpoint exposed by each target."
+/>
+
+<Quiz
+  question="What is Grafana's main job in this stack?"
+  options={[
+    "Storing metrics long-term",
+    "Scraping targets",
+    "Visualizing metrics and building dashboards and alerts",
+    "Running your application"
+  ]}
+  answer={2}
+  explanation="Grafana is the visualization and dashboarding layer. Prometheus stores and serves the data; Grafana displays it."
+/>
+
+---
+
+# 💼 Interview Preparation
+
+<InterviewPrep question="Why is Prometheus's pull model useful in dynamic environments like Kubernetes?">
+  In a pull model Prometheus owns the list of what to scrape, which brings real advantages:
+
+  - **Service discovery:** Prometheus can automatically discover new pods/targets as they appear and drop them when they die — perfect for autoscaling.
+  - **Health signal:** if a scrape fails, Prometheus instantly knows the target is down (the `up` metric goes to 0).
+  - **No client complexity:** apps just expose a `/metrics` endpoint; they don't need to know where Prometheus is or manage delivery.
+
+  Push-based systems can still be useful for short-lived batch jobs — that's what the Pushgateway is for — but pull is the default and fits cloud-native systems well.
+</InterviewPrep>
+
+---
+
+# Summary
+
+You now understand *why* we monitor, the difference between metrics, logs, and traces, and the roles of Prometheus (collect + store + query) and Grafana (visualize + alert). Next, we'll go hands-on with Prometheus itself: scraping, the data model, and querying with PromQL.
+
+<NextLesson
+  title="Prometheus Fundamentals: Scraping & PromQL"
+  href="/ultimate-devops-learning-hub/prometheus-grafana/prometheus-basics"
+/>
