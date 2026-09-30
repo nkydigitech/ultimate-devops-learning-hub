@@ -46,7 +46,7 @@ Site runs at `http://localhost:4321/ultimate-devops-learning-hub`
 
 This project is actively being built in public. New content and features are added regularly.
 
-Follow the progress: [LinkedIn — NkyDigitech](https://www.linkedin.com/in/nkechi-ahanonye)
+Follow the progress: [LinkedIn — NkyDigitech](https://www.linkedin.com/in/nkechiahanonye)
 
 ---
 
